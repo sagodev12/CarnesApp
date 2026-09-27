@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { FaWhatsapp } from "react-icons/fa";
 
 const NAV_LINKS = [
   { href: "#productos", label: "Productos" },
@@ -24,10 +23,10 @@ export default function Header() {
           href="/"
           className="font-display text-2xl font-black tracking-tight text-charcoal"
         >
-          Carnes<span className="text-brick">App</span>
+          Surti Carnes<span className="text-brick"> del Fonce</span>
         </Link>
 
-        {/* Nav — solo desktop */}
+        {/* Nav desktop */}
         <nav className="hidden items-center gap-8 md:flex">
           {NAV_LINKS.map((link) => (
             <a
@@ -39,21 +38,9 @@ export default function Header() {
             </a>
           ))}
         </nav>
-        
-        <div className="hidden md:block">
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Contactar por WhatsApp"
-            className="inline-flex items-center justify-center rounded-full bg-[#25D366] p-3 text-white transition-colors hover:bg-[#20BD5A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
-          >
-            <FaWhatsapp size={22} />
-          </a>
-        </div>
 
 
-        {/* Toggle — solo mobile */}
+        {/* Toggle mobile */}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -78,17 +65,6 @@ export default function Header() {
               {link.label}
             </a>
           ))}
-        <div className="hidden md:block">
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Contactar por WhatsApp"
-          className="inline-flex items-center justify-center rounded-full bg-[#25D366] p-3 text-white transition-colors hover:bg-[#20BD5A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
-        >
-          <FaWhatsapp size={22} />
-        </a>
-      </div>
 
         </nav>
       )}

@@ -26,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={`${fraunces.variable} ${inter.variable}`}>
-      <body className="bg-cream font-sans text-charcoal antialiased">
+      <body className="flex min-h-screen flex-col bg-cream font-sans text-charcoal antialiased">
         {children}
       </body>
     </html>

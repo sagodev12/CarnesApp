@@ -1,4 +1,4 @@
-import {MapPin, Clock } from "lucide-react";
+import {MapPin, Clock, PhoneIcon } from "lucide-react";
 
 
 // TODO: mover a site_config (Supabase) cuando esté listo
@@ -10,7 +10,7 @@ export default function Footer() {
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-3 lg:px-8">
         <div>
           <p className="font-display text-2xl font-black">
-            Carnes<span className="text-mustard">App</span>
+            Surti Carnes<span className="text-mustard"> del Fonce</span>
           </p>
 
           <p className="mt-3 max-w-xs text-sm text-cream/70">
@@ -28,13 +28,24 @@ export default function Footer() {
             <Clock size={16} className="shrink-0 text-mustard" />
             Lun a sáb, 7:00 a.m. – 6:00 p.m.
           </p>
-        </div>
 
-        
+          <p className="flex items-center gap-2">
+            <PhoneIcon size={16} className="shrink-0 text-mustard" />
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-mustard"
+            >
+              {WHATSAPP_NUMBER}
+            </a>
+          </p>
+        </div>
       </div>
 
       <div className="border-t border-cream/10 px-4 py-4 text-center text-xs text-cream/50 sm:px-6 lg:px-8">
-        © {new Date().getFullYear()} CarnesApp. Todos los derechos reservados.
+        © {new Date().getFullYear()} Surti Carnes del Fonce. Todos los derechos
+        reservados.
       </div>
     </footer>
   );
