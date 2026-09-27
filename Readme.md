@@ -1,4 +1,4 @@
-# 🥩 Carnicería Landing
+# 🥩 CarnesApp
 
 Landing page parametrizable para carnicerías, con panel de administración para gestionar productos, imágenes y contacto directo por WhatsApp.
 
@@ -22,7 +22,7 @@ Landing page parametrizable para carnicerías, con panel de administración para
 
 ## 🏗️ Arquitectura
 
-![Diagrama de arquitectura](./docs/arquitectura-carniceria.png)
+![Diagrama de arquitectura](./docs/architecture/CarnesApp.png)
 
 El proyecto corre como una app Next.js desplegada en Vercel, que se conecta a tres servicios externos:
 
@@ -30,7 +30,7 @@ El proyecto corre como una app Next.js desplegada en Vercel, que se conecta a tr
 - **Supabase** — base de datos PostgreSQL + almacenamiento de imágenes
 - **WhatsApp (`wa.me`)** — contacto directo desde el cliente, sin pasar por el backend
 
-> 📎 El diagrama es editable: el archivo fuente está en [`/docs/arquitectura-carniceria.excalidraw`](./docs/arquitectura-carniceria.excalidraw) — ábrelo en [excalidraw.com](https://excalidraw.com) para modificarlo.
+> 📎 El diagrama es editable: guarda también el archivo fuente `.excalidraw` en `docs/architecture/` y enlázalo aquí — ábrelo en [excalidraw.com](https://excalidraw.com) para modificarlo.
 
 ## 🧱 Stack técnico
 
