@@ -22,7 +22,7 @@ Landing page parametrizable para carnicerías, con panel de administración para
 
 ## 🏗️ Arquitectura
 
-![Diagrama de arquitectura](./docs/architecture/CarnesApp.png)
+![Diagrama de arquitectura](./docs/architecture/carnesApp.png)
 
 El proyecto corre como una app Next.js desplegada en Vercel, que se conecta a tres servicios externos:
 
