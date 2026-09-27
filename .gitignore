@@ -1,17 +1,17 @@
 # === Dependencias ===
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.js
 .yarn/install-state.gz
 
 # === Next.js ===
-/.next/
-/out/
+.next/
+out/
 next-env.d.ts
 
 # === Producción ===
-/build
-/dist
+build/
+dist/
 
 # === Variables de entorno ===
 .env
@@ -32,7 +32,7 @@ supabase/.temp
 *.tsbuildinfo
 
 # === Testing / Coverage ===
-/coverage
+coverage/
 
 # === Logs ===
 npm-debug.log*
