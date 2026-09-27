@@ -1,17 +1,27 @@
 import {MapPin, Clock, PhoneIcon } from "lucide-react";
+import BrandName from "./Brandname";
 
 
 // TODO: mover a site_config (Supabase) cuando esté listo
 const WHATSAPP_NUMBER = "57312 3627031";
+
+// TODO: mover a site_config (Supabase) cuando esté listo
+const BUSINESS_NAME = "Surti Carnes del Fonce";
+const BUSINESS_HIGHLIGHT = "del Fonce";
+
+
 
 export default function Footer() {
   return (
     <footer className="border-t border-line bg-charcoal text-cream">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-3 lg:px-8">
         <div>
-          <p className="font-display text-2xl font-black">
-            Surti Carnes<span className="text-mustard"> del Fonce</span>
-          </p>
+          <BrandName
+            name={BUSINESS_NAME}
+            highlight={BUSINESS_HIGHLIGHT}
+            className="font-display text-2xl font-black"
+            highlightClassName="text-mustard"
+          />
 
           <p className="mt-3 max-w-xs text-sm text-cream/70">
             Cortes frescos, seleccionados a diario. Del mostrador a tu mesa.

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import BrandName from  "@/components/public/Brandname";
+
 
 const NAV_LINKS = [
   { href: "#productos", label: "Productos" },
@@ -12,6 +14,10 @@ const NAV_LINKS = [
 
 // TODO: mover a site_config (Supabase) cuando esté listo
 const WHATSAPP_NUMBER = "573123627031";
+
+// TODO: mover a site_config (Supabase) cuando esté listo
+const BUSINESS_NAME = "Surti Carnes del Fonce";
+const BUSINESS_HIGHLIGHT = "del Fonce";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -23,7 +29,12 @@ export default function Header() {
           href="/"
           className="font-display text-2xl font-black tracking-tight text-charcoal"
         >
-          Surti Carnes<span className="text-brick"> del Fonce</span>
+            <BrandName
+              name={BUSINESS_NAME}
+              highlight={BUSINESS_HIGHLIGHT}
+              className="font-display text-2xl font-black tracking-tight text-charcoal"
+            />
+          
         </Link>
 
         {/* Nav desktop */}
@@ -38,7 +49,6 @@ export default function Header() {
             </a>
           ))}
         </nav>
-
 
         {/* Toggle mobile */}
         <button
@@ -65,7 +75,6 @@ export default function Header() {
               {link.label}
             </a>
           ))}
-
         </nav>
       )}
     </header>
