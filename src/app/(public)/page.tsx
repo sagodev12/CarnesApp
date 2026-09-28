@@ -16,7 +16,7 @@ export default async function Home() {
   const [config, firstPage, categories, offers] = await Promise.all([
     getSiteConfig(),
     // Si falla, la landing se muestra igual (sin productos) en vez de romperse.
-    getActiveProductsPage({ page: 1, categoryId: null }).catch((error) => {
+    getActiveProductsPage({ page: 1, categoryId: null, search: null }).catch((error) => {
       console.error(error);
       return paginated([], 0, 1, PUBLIC_PAGE_SIZE);
     }),

@@ -14,7 +14,9 @@ export function PriceTag({ product, now, size = "md" }: PriceTagProps) {
   const price = onSale ? (product.sale_price as number) : product.price;
 
   return (
-    <div className="leading-tight">
+    // relative: contiene los textos sr-only (absolutos). Sin esto, dentro de
+    // la franja de ofertas escapan del scroll horizontal y ensanchan la página.
+    <div className="relative leading-tight">
       {onSale && (
         <p className="text-sm text-charcoal/50 line-through">
           <span className="sr-only">Antes: </span>

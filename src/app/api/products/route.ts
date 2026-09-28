@@ -5,7 +5,7 @@ import {
 import { parseProductQuery } from "@/lib/products/query-params";
 
 // Catálogo público paginado para la galería:
-//   GET /api/products?pagina=2&categoria=<uuid>
+//   GET /api/products?pagina=2&categoria=<uuid>&buscar=<texto>
 //   GET /api/products?ids=<uuid>,<uuid>   (valida el carrito guardado)
 // Los datos salen de la caché del servidor; además la CDN puede cachear la
 // respuesta un minuto.
@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     const page = await getActiveProductsPage({
       page: query.page,
       categoryId: query.categoryId,
+      search: query.search,
     });
     return Response.json(page, { headers: CACHE_HEADERS });
   } catch (error) {

@@ -9,7 +9,7 @@ const query = (value: string) => parseProductQuery(new URLSearchParams(value));
 
 describe("parseProductQuery", () => {
   it("por defecto pide la página 1 sin filtro", () => {
-    expect(query("")).toEqual({ mode: "page", page: 1, categoryId: null });
+    expect(query("")).toEqual({ mode: "page", page: 1, categoryId: null, search: null });
   });
 
   it("lee página y categoría", () => {
@@ -17,7 +17,16 @@ describe("parseProductQuery", () => {
       mode: "page",
       page: 3,
       categoryId: A,
+      search: null,
     });
+  });
+
+  it("lee y normaliza la búsqueda", () => {
+    expect(query("buscar=%20Punta%20%20de%20anca%20")).toMatchObject({ search: "Punta de anca" });
+  });
+
+  it("ignora una búsqueda demasiado corta en vez de rechazarla", () => {
+    expect(query("buscar=a")).toMatchObject({ mode: "page", search: null });
   });
 
   it("rechaza una categoría que no es uuid", () => {
@@ -41,17 +50,18 @@ describe("parseProductQuery", () => {
 
 describe("productsApiUrl", () => {
   it("omite los parámetros por defecto", () => {
-    expect(productsApiUrl({ page: 1, categoryId: null })).toBe("/api/products");
+    expect(productsApiUrl({ page: 1, categoryId: null, search: null })).toBe("/api/products");
   });
 
   it("incluye página y categoría, y es inverso de parseProductQuery", () => {
-    const url = productsApiUrl({ page: 2, categoryId: A });
+    const url = productsApiUrl({ page: 2, categoryId: A, search: "punta de anca" });
 
-    expect(url).toBe(`/api/products?pagina=2&categoria=${A}`);
+    expect(url).toBe(`/api/products?pagina=2&categoria=${A}&buscar=punta+de+anca`);
     expect(parseProductQuery(new URL(url, "http://x").searchParams)).toEqual({
       mode: "page",
       page: 2,
       categoryId: A,
+      search: "punta de anca",
     });
   });
 });

@@ -30,9 +30,15 @@ describe("GET /api/products", () => {
     const response = await GET(request(`pagina=2&categoria=${A}`));
 
     expect(response.status).toBe(200);
-    expect(getActiveProductsPage).toHaveBeenCalledWith({ page: 2, categoryId: A });
+    expect(getActiveProductsPage).toHaveBeenCalledWith({ page: 2, categoryId: A, search: null });
     expect(await response.json()).toMatchObject({ items: [{ id: A }], page: 2 });
     expect(response.headers.get("cache-control")).toMatch(/s-maxage=\d+/);
+  });
+
+  it("pasa la búsqueda normalizada a la consulta", async () => {
+    await GET(request("buscar=%20chata%20"));
+
+    expect(getActiveProductsPage).toHaveBeenCalledWith({ page: 1, categoryId: null, search: "chata" });
   });
 
   it("devuelve productos por ids (para validar el carrito)", async () => {

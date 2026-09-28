@@ -6,6 +6,8 @@ import { PUBLIC_PAGE_SIZE, pageRange, paginated, type Paginated } from "@/lib/pa
 import { createClient } from "@/lib/supabase/server";
 import type { Category, ProductWithCategory } from "@/types";
 
+import { searchOrFilter } from "./search";
+
 // Consultas del sitio público: usan la publishable key, así que dependen de
 // las políticas RLS (supabase/public-read-policies.sql): solo productos activos.
 //
@@ -19,10 +21,10 @@ const CACHE_SECONDS = 3600;
 const PRODUCT_COLUMNS =
   "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, order, created_at, updated_at, category:categories(id, name)";
 
-type PageQuery = { page: number; categoryId: string | null };
+type PageQuery = { page: number; categoryId: string | null; search: string | null };
 
 export const getActiveProductsPage = unstable_cache(
-  async ({ page, categoryId }: PageQuery): Promise<Paginated<ProductWithCategory>> => {
+  async ({ page, categoryId, search }: PageQuery): Promise<Paginated<ProductWithCategory>> => {
     const { from, to } = pageRange(page, PUBLIC_PAGE_SIZE);
 
     let query = createClient()
@@ -30,6 +32,8 @@ export const getActiveProductsPage = unstable_cache(
       .select(PRODUCT_COLUMNS, { count: "exact" })
       .eq("active", true);
     if (categoryId) query = query.eq("category_id", categoryId);
+    // search llega normalizado (normalizeSearch): seguro para el filtro or().
+    if (search) query = query.or(searchOrFilter(search));
 
     const { data, count, error } = await query
       .order("order")
