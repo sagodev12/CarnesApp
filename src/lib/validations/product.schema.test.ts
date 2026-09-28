@@ -93,6 +93,11 @@ describe("parseProductFormData", () => {
     ).toBe(false);
   });
 
+  it("lee la marca de agotado (por defecto, disponible)", () => {
+    expect(parseProductFormData(productForm()).data?.sold_out).toBe(false);
+    expect(parseProductFormData(productForm({ sold_out: "on" })).data?.sold_out).toBe(true);
+  });
+
   it("lee la opción de quitar imagen", () => {
     expect(
       parseProductFormData(productForm({ remove_image: "on" })).data?.remove_image,

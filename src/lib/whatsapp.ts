@@ -1,3 +1,4 @@
+import type { Customer } from "./customer";
 import { formatPrice } from "./format";
 
 // Deja solo dígitos. Un celular colombiano de 10 dígitos (3xx...) sin
@@ -43,14 +44,29 @@ export type OrderLine = {
   unit: string | null;
   price: number;
   quantity: number;
+  note?: string;
 };
 
-export function buildOrderMessage(greeting: string | null, lines: OrderLine[]) {
-  const items = lines.map((line) => {
+function customerLines({ name, delivery, address, note }: Customer) {
+  return [
+    `Nombre: ${name.trim()}`,
+    delivery === "domicilio" ? `Entrega: Domicilio — ${address.trim()}` : "Entrega: Recoger en tienda",
+    ...(note.trim() ? [`Nota: ${note.trim()}`] : []),
+  ];
+}
+
+export function buildOrderMessage(
+  greeting: string | null,
+  lines: OrderLine[],
+  customer?: Customer | null,
+) {
+  const items = lines.flatMap((line) => {
     const unit = formatUnit(line.unit, line.quantity);
     const amount = `${formatQuantity(line.quantity)}${unit ? ` ${unit}` : ""}`;
+    const item = `• ${amount} de ${line.name} — ${formatPrice(line.price * line.quantity)}`;
 
-    return `• ${amount} de ${line.name} — ${formatPrice(line.price * line.quantity)}`;
+    const note = line.note?.trim();
+    return note ? [item, `   ↳ ${note}`] : [item];
   });
 
   const total = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
@@ -61,5 +77,6 @@ export function buildOrderMessage(greeting: string | null, lines: OrderLine[]) {
     ...items,
     "",
     `Total estimado: ${formatPrice(total)}`,
+    ...(customer ? ["", ...customerLines(customer)] : []),
   ].join("\n");
 }

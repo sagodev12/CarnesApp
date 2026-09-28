@@ -257,15 +257,27 @@ export default function ProductForm({ categories, action, product }: ProductForm
         />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
-          type="checkbox"
-          name="active"
-          defaultChecked={pick(values, "active", product?.active ?? true)}
-          className="size-4 accent-brick"
-        />
-        Visible en la tienda
-      </label>
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-8">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="active"
+            defaultChecked={pick(values, "active", product?.active ?? true)}
+            className="size-4 accent-brick"
+          />
+          Visible en la tienda
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="sold_out"
+            defaultChecked={pick(values, "sold_out", product?.sold_out ?? false)}
+            className="size-4 accent-brick"
+          />
+          Agotado
+          <span className="font-normal text-charcoal/50">(se muestra, pero no se puede pedir)</span>
+        </label>
+      </div>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link

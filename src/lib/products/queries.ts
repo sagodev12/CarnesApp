@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { Category, ProductWithCategory } from "@/types";
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, order, created_at, updated_at, category:categories(id, name)";
+  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, sold_out, order, created_at, updated_at, category:categories(id, name)";
 
 // Consultas del panel admin (incluyen productos inactivos, usan service_role).
 // Quien las llame debe haber verificado antes que el usuario es admin.

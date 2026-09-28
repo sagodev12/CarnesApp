@@ -1,3 +1,4 @@
+import { parseOpeningHours } from "@/lib/hours";
 import type { SiteConfig } from "@/types";
 
 const DEFAULTS: SiteConfig = {
@@ -15,6 +16,7 @@ const DEFAULTS: SiteConfig = {
   primary_color: "#9a3324",
   latitude: null,
   longitude: null,
+  opening_hours: null,
 };
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
@@ -33,6 +35,9 @@ export function withSiteConfigDefaults(row: Partial<SiteConfig> | null): SiteCon
   if (!HEX_COLOR.test(config.primary_color ?? "")) {
     config.primary_color = DEFAULTS.primary_color;
   }
+
+  // jsonb sin esquema en la base: se valida antes de usarlo.
+  config.opening_hours = parseOpeningHours(config.opening_hours);
 
   return config;
 }

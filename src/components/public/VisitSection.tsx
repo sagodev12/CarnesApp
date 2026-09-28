@@ -5,6 +5,8 @@ import { googleMapsDirectionsUrl, googleMapsEmbedUrl, type Coordinates } from "@
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { SiteConfig } from "@/types";
 
+import OpenStatus from "./OpenStatus";
+
 type VisitSectionProps = {
   config: SiteConfig;
   coordinates: Coordinates;
@@ -29,6 +31,7 @@ export default function VisitSection({ config, coordinates }: VisitSectionProps)
           <h2 id="ubicacion-title" className="mt-1 font-display text-3xl font-black sm:text-4xl">
             Visítanos
           </h2>
+          <OpenStatus hours={config.opening_hours} className="mt-4 self-start" />
 
           <div className="mt-6 space-y-4 text-charcoal/80">
             {address && (

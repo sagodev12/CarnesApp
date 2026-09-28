@@ -19,3 +19,10 @@ export function useNow(serverTime: number) {
   const time = useSyncExternalStore(subscribe, currentMinute, () => serverTime);
   return useMemo(() => new Date(time), [time]);
 }
+
+// Igual, pero sin hora del servidor: devuelve null al renderizar en el
+// servidor y al hidratar, y la hora real después (útil en páginas cacheadas).
+export function useClientNow() {
+  const time = useSyncExternalStore(subscribe, currentMinute, () => null);
+  return useMemo(() => (time === null ? null : new Date(time)), [time]);
+}

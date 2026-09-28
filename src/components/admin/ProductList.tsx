@@ -66,6 +66,11 @@ export default function ProductList({ products, now }: ProductListProps) {
                 >
                   {product.active ? "Visible" : "Oculto"}
                 </span>
+                {product.sold_out && (
+                  <span className="absolute left-2 top-8 rounded-full bg-charcoal px-2 py-0.5 text-xs font-semibold text-cream">
+                    Agotado
+                  </span>
+                )}
                 {onSale && (
                   <span className="absolute bottom-2 left-2 rounded-full bg-brick px-2.5 py-0.5 text-xs font-bold text-cream shadow-sm">
                     -{discountPercent(product.price, product.sale_price as number)}%

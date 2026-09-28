@@ -13,7 +13,7 @@ import {
   type ProductInput,
 } from "@/lib/validations/product.schema";
 
-const CHECKBOXES = ["active", "remove_image"];
+const CHECKBOXES = ["active", "sold_out", "remove_image"];
 
 // Solo las columnas de la tabla (sin la imagen ni las opciones del formulario).
 function productRow(data: ProductInput) {
@@ -28,6 +28,7 @@ function productRow(data: ProductInput) {
     category_id,
     order,
     active,
+    sold_out,
   } = data;
   return {
     name,
@@ -40,6 +41,7 @@ function productRow(data: ProductInput) {
     category_id,
     order,
     active,
+    sold_out,
   };
 }
 

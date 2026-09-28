@@ -18,6 +18,7 @@ import { ACCEPTED_IMAGE_TYPES } from "@/lib/validations/common";
 import type { SiteConfig } from "@/types";
 
 import LocationPicker from "./LocationPicker";
+import OpeningHoursField from "./OpeningHoursField";
 
 export default function SiteConfigForm({ config }: { config: SiteConfig }) {
   const [state, formAction, pending] = useActionState(updateSiteConfig, initialFormState);
@@ -192,6 +193,13 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
             />
           </Field>
         </div>
+      </Section>
+
+      <Section
+        title="Horario de atención"
+        description="Con él, la página muestra si el local está abierto ahora. Marca los días que abres."
+      >
+        <OpeningHoursField hours={config.opening_hours} errors={errors.opening_hours} />
       </Section>
 
       <Section

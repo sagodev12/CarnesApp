@@ -86,3 +86,48 @@ describe("buildOrderMessage", () => {
     );
   });
 });
+
+describe("buildOrderMessage con indicaciones y datos de entrega", () => {
+  const lines = [
+    { name: "Chata", unit: "kg", price: 32000, quantity: 1.5, note: " en bistec " },
+    { name: "Chorizo", unit: "unidad", price: 12000, quantity: 2, note: "   " },
+  ];
+
+  it("agrega la indicación (recortada, y omite las vacías) bajo su producto y los datos del cliente al final", () => {
+    const message = normalizeSpaces(
+      buildOrderMessage(null, lines, {
+        name: "Ana Gómez",
+        delivery: "domicilio",
+        address: "Cra 10 # 5-20, barrio Centro",
+        note: "Llamar al llegar",
+      }),
+    );
+
+    expect(message).toBe(
+      [
+        "Hola, quiero hacer un pedido",
+        "",
+        "• 1,5 kg de Chata — $ 48.000",
+        "   ↳ en bistec",
+        "• 2 unidades de Chorizo — $ 24.000",
+        "",
+        "Total estimado: $ 72.000",
+        "",
+        "Nombre: Ana Gómez",
+        "Entrega: Domicilio — Cra 10 # 5-20, barrio Centro",
+        "Nota: Llamar al llegar",
+      ].join("\n"),
+    );
+  });
+
+  it("para recoger no incluye dirección y omite la nota vacía", () => {
+    const message = buildOrderMessage(null, lines, {
+      name: "Ana",
+      delivery: "recoger",
+      address: "Cra 10",
+      note: " ",
+    });
+
+    expect(message.split("\n").slice(-2)).toEqual(["Nombre: Ana", "Entrega: Recoger en tienda"]);
+  });
+});

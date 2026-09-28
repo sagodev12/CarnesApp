@@ -7,6 +7,7 @@ import {
   orderTotal,
   parseStoredOrder,
   removeFromOrder,
+  setNote,
   stepFor,
   syncOrder,
   type OrderProduct,
@@ -125,5 +126,44 @@ describe("orderLines / orderTotal", () => {
       ["chata", 1],
     ]);
     expect(orderTotal(lines)).toBe(56000);
+  });
+});
+
+describe("setNote", () => {
+  it("guarda la indicación tal cual (se escribe letra a letra) y la quita si queda vacía", () => {
+    const order = addToOrder({}, chata);
+
+    const withNote = setNote(order, "chata", "en ");
+    expect(withNote.chata.note).toBe("en ");
+    expect(setNote(withNote, "chata", "   ").chata).not.toHaveProperty("note");
+  });
+
+  it("limita la indicación a 100 caracteres", () => {
+    const order = setNote(addToOrder({}, chata), "chata", "x".repeat(150));
+    expect(order.chata.note).toHaveLength(100);
+  });
+
+  it("no hace nada si el producto no está en el pedido", () => {
+    const order = addToOrder({}, chata);
+    expect(setNote(order, "otro", "nota")).toBe(order);
+  });
+
+  it("la indicación se conserva al sumar, restar y sincronizar", () => {
+    let order = setNote(addToOrder({}, chata), "chata", "molida");
+
+    order = addToOrder(order, chata);
+    expect(order.chata.note).toBe("molida");
+    order = decrementInOrder(order, chata);
+    expect(order.chata.note).toBe("molida");
+    order = syncOrder(order, [{ ...chata, price: 30000 }], { dropMissing: true });
+    expect(order.chata).toMatchObject({ price: 30000, note: "molida" });
+  });
+
+  it("se lee del pedido guardado; una nota inválida descarta el producto", () => {
+    const raw = JSON.stringify({
+      chata: { ...chata, quantity: 1, note: "en bistec" },
+      chorizo: { ...chorizo, quantity: 1, note: 5 },
+    });
+    expect(parseStoredOrder(raw)).toEqual({ chata: { ...chata, quantity: 1, note: "en bistec" } });
   });
 });

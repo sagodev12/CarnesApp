@@ -9,6 +9,7 @@ import {
   orderTotal,
   parseStoredOrder,
   removeFromOrder,
+  setNote,
   syncOrder,
   type Order,
   type OrderProduct,
@@ -66,10 +67,13 @@ async function validateStoredOrder() {
     const response = await fetch(`/api/products?ids=${ids.join(",")}`);
     if (!response.ok) return; // Sin conexión o error: se conserva lo guardado.
 
-    const { items } = (await response.json()) as { items: (OrderProduct & SaleFields)[] };
+    const { items } = (await response.json()) as {
+      items: (OrderProduct & SaleFields & { sold_out: boolean })[];
+    };
     // Precio vigente: aplica promociones nuevas y quita las que terminaron.
+    // Los agotados se tratan como no disponibles (se quitan del pedido).
     const now = new Date();
-    const fresh = items.map((item) => toOrderProduct(item, now));
+    const fresh = items.filter((item) => !item.sold_out).map((item) => toOrderProduct(item, now));
     // Se relee por si el cliente cambió el pedido mientras llegaba la respuesta.
     writeOrder(syncOrder(parseStoredOrder(readRaw()), fresh, { dropMissing: true }));
   } catch {
@@ -102,6 +106,17 @@ export function useOrder() {
     [order],
   );
   const clear = useCallback(() => writeOrder({}), []);
+  const note = useCallback(
+    (id: string, text: string) => writeOrder(setNote(order, id, text)),
+    [order],
+  );
 
-  return { order, lines, total: orderTotal(lines), add, decrement, remove, clear };
+  return { order, lines, total: orderTotal(lines), add, decrement, remove, clear, setNote: note };
+}
+
+// Cantidad de productos en el pedido, para quien no necesita el pedido
+// completo (p. ej. el botón flotante de WhatsApp).
+export function useOrderCount() {
+  const raw = useSyncExternalStore(subscribe, readRaw, () => null);
+  return useMemo(() => Object.keys(parseStoredOrder(raw)).length, [raw]);
 }

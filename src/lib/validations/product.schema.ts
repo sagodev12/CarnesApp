@@ -54,6 +54,7 @@ export const productSchema = z
       .transform((value) => value || null),
     order: orderSchema,
     active: z.boolean(),
+    sold_out: z.boolean(),
     image: optionalImageSchema,
     remove_image: z.boolean(),
   })
@@ -99,6 +100,7 @@ export function parseProductFormData(formData: FormData) {
     category_id: text(formData, "category_id"),
     order: text(formData, "order"),
     active: checkbox(formData, "active"),
+    sold_out: checkbox(formData, "sold_out"),
     image: file(formData, "image"),
     remove_image: checkbox(formData, "remove_image"),
   });

@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import ProductGallery from "@/components/public/gallery/ProductGallery";
+import OpenStatus from "@/components/public/OpenStatus";
 import VisitSection from "@/components/public/VisitSection";
 import { toCoordinates } from "@/lib/location";
 import { PUBLIC_PAGE_SIZE, paginated } from "@/lib/pagination";
@@ -57,6 +58,11 @@ export default async function Home() {
             config.hero_image_url ? "text-cream" : "text-charcoal"
           }`}
         >
+          <OpenStatus
+            hours={config.opening_hours}
+            tone={config.hero_image_url ? "light" : "dark"}
+            className="mb-5"
+          />
           <h1 className="max-w-2xl font-display text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
             {config.business_name}
           </h1>
@@ -103,6 +109,7 @@ export default async function Home() {
           renderedAt={renderedAt}
           phone={config.phone_whatsapp}
           greeting={config.whatsapp_message}
+          storeAddress={config.address}
         />
       </section>
 

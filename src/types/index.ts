@@ -1,3 +1,5 @@
+import type { OpeningHours } from "@/lib/hours";
+
 export type Category = {
   id: string;
   name: string;
@@ -18,6 +20,8 @@ export type Product = {
   image_url: string | null;
   category_id: string | null;
   active: boolean;
+  // Se muestra en la tienda pero no se puede pedir.
+  sold_out: boolean;
   order: number;
   created_at: string;
   updated_at: string;
@@ -43,4 +47,6 @@ export type SiteConfig = {
   // Ubicación del local (ambas null = sin mapa).
   latitude: number | null;
   longitude: number | null;
+  // Horario por día (0 = domingo) para "Abierto / Cerrado ahora".
+  opening_hours: OpeningHours | null;
 };

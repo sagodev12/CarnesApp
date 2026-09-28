@@ -26,6 +26,7 @@ type ProductGalleryProps = {
   renderedAt: number;
   phone: string;
   greeting: string | null;
+  storeAddress: string | null;
 };
 
 type Status = "idle" | "filtering" | "loading-more" | "error";
@@ -48,6 +49,7 @@ export default function ProductGallery({
   renderedAt,
   phone,
   greeting,
+  storeAddress,
 }: ProductGalleryProps) {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [result, setResult] = useState(initialPage);
@@ -63,11 +65,11 @@ export default function ProductGallery({
   const requestId = useRef(0);
   const lastRequest = useRef<Request | null>(null);
 
-  const { order, lines, total, add, decrement, remove, clear } = useOrder();
+  const { order, lines, total, add, decrement, remove, clear, setNote } = useOrder();
   const canOrder = Boolean(phone);
 
   const now = useNow(renderedAt);
-  const liveOffers = offers.filter((product) => isOnSale(product, now));
+  const liveOffers = offers.filter((product) => !product.sold_out && isOnSale(product, now));
   const showingOffers = categoryId === OFFERS;
   const shownItems = showingOffers
     ? liveOffers.filter((product) => matchesSearch(product, search))
@@ -372,6 +374,8 @@ export default function ProductGallery({
           total={total}
           phone={phone}
           greeting={greeting}
+          storeAddress={storeAddress}
+          onNote={setNote}
           onAdd={add}
           onDecrement={decrement}
           onRemove={remove}

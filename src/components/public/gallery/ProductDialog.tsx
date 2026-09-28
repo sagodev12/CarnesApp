@@ -67,7 +67,12 @@ export default function ProductDialog({
                 <Beef size={64} />
               </div>
             )}
-            {isOnSale(product, now) && (
+            {product.sold_out && (
+              <span className="absolute left-4 top-4 rounded-full bg-charcoal px-3 py-1 text-sm font-semibold text-cream">
+                Agotado
+              </span>
+            )}
+            {!product.sold_out && isOnSale(product, now) && (
               <SaleBadge
                 price={product.price}
                 salePrice={product.sale_price as number}
@@ -108,7 +113,12 @@ export default function ProductDialog({
             <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line px-5 py-4">
               <PriceTag product={product} now={now} size="lg" />
 
-              {canOrder &&
+              {canOrder && product.sold_out ? (
+                <span className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-charcoal/50">
+                  Agotado por ahora
+                </span>
+              ) : (
+                canOrder &&
                 (quantity !== undefined ? (
                   <QuantityStepper
                     name={product.name}
@@ -126,7 +136,8 @@ export default function ProductDialog({
                     <Plus size={16} />
                     Agregar al pedido
                   </button>
-                ))}
+                ))
+              )}
             </div>
           </div>
         </div>

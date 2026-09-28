@@ -115,4 +115,48 @@ describe("parseSiteConfigFormData", () => {
       parseSiteConfigFormData(configForm({ latitude: "abc", longitude: "1" })).success,
     ).toBe(false);
   });
+
+  it("sin días marcados no guarda horario", () => {
+    expect(parseSiteConfigFormData(configForm()).data?.opening_hours).toBeNull();
+  });
+
+  it("arma el horario de la semana (0 = domingo); los días sin marcar quedan cerrados", () => {
+    const result = parseSiteConfigFormData(
+      configForm({
+        hours_1_enabled: "on",
+        hours_1_open: "07:00",
+        hours_1_close: "18:00",
+        hours_6_enabled: "on",
+        hours_6_open: "07:00",
+        hours_6_close: "13:00",
+        // Horas escritas en un día sin marcar: se ignoran.
+        hours_0_open: "08:00",
+        hours_0_close: "12:00",
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data?.opening_hours).toEqual([
+      null,
+      { open: "07:00", close: "18:00" },
+      null,
+      null,
+      null,
+      null,
+      { open: "07:00", close: "13:00" },
+    ]);
+  });
+
+  it("rechaza un día abierto sin horas o con cierre antes de la apertura", () => {
+    const missing = parseSiteConfigFormData(configForm({ hours_2_enabled: "on", hours_2_open: "07:00" }));
+    expect(missing.success).toBe(false);
+    expect(missing.error?.issues[0]?.path).toEqual(["opening_hours"]);
+    expect(missing.error?.issues[0]?.message).toMatch(/martes/i);
+
+    const reversed = parseSiteConfigFormData(
+      configForm({ hours_3_enabled: "on", hours_3_open: "18:00", hours_3_close: "07:00" }),
+    );
+    expect(reversed.success).toBe(false);
+    expect(reversed.error?.issues[0]?.message).toMatch(/miércoles/i);
+  });
 });

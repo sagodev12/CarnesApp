@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_SEARCH_LENGTH, matchesSearch, normalizeSearch, searchOrFilter } from "./search";
+import { MAX_SEARCH_LENGTH, matchesSearch, normalizeSearch, searchPage } from "./search";
 
 describe("normalizeSearch", () => {
   it("recorta y une espacios repetidos", () => {
@@ -26,18 +26,6 @@ describe("normalizeSearch", () => {
   });
 });
 
-describe("searchOrFilter", () => {
-  it("busca en nombre o descripción sin distinguir mayúsculas", () => {
-    expect(searchOrFilter("pecho")).toBe("name.ilike.%pecho%,description.ilike.%pecho%");
-  });
-
-  it("con varias palabras, busca la frase completa", () => {
-    expect(searchOrFilter("punta de anca")).toBe(
-      "name.ilike.%punta de anca%,description.ilike.%punta de anca%",
-    );
-  });
-});
-
 describe("matchesSearch", () => {
   const product = { name: "Filete de Salmón", description: "Fresco del Pacífico" };
 
@@ -49,5 +37,28 @@ describe("matchesSearch", () => {
 
   it("sin búsqueda, todo coincide", () => {
     expect(matchesSearch(product, null)).toBe(true);
+  });
+});
+
+describe("searchPage", () => {
+  const items = Array.from({ length: 30 }, (_, i) => ({
+    name: i % 3 === 0 ? `Salmón ${i}` : `Res ${i}`,
+    description: "",
+  }));
+
+  it("filtra sin tildes y pagina el resultado", () => {
+    const first = searchPage(items, "salmon", 1, 4);
+
+    expect(first.total).toBe(10);
+    expect(first.items.map((item) => item.name)).toEqual(["Salmón 0", "Salmón 3", "Salmón 6", "Salmón 9"]);
+    expect(first).toMatchObject({ page: 1, totalPages: 3, hasMore: true });
+
+    const last = searchPage(items, "salmon", 3, 4);
+    expect(last.items).toHaveLength(2);
+    expect(last.hasMore).toBe(false);
+  });
+
+  it("sin coincidencias devuelve una página vacía", () => {
+    expect(searchPage(items, "pollo", 1, 4)).toMatchObject({ items: [], total: 0, hasMore: false });
   });
 });

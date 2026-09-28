@@ -8,10 +8,12 @@ export type OrderProduct = {
   price: number;
 };
 
-export type OrderItem = OrderProduct & { quantity: number };
+// note: indicación del cliente para ese producto ("en bistec", "molida"…).
+export type OrderItem = OrderProduct & { quantity: number; note?: string };
 export type Order = Record<string, OrderItem>;
 
 const WEIGHT_UNITS = new Set(["kg", "lb"]);
+export const MAX_NOTE_LENGTH = 100;
 
 export function stepFor(unit: string | null) {
   return unit && WEIGHT_UNITS.has(unit) ? 0.5 : 1;
@@ -26,11 +28,19 @@ function snapshot({ id, name, unit, price }: OrderProduct): OrderProduct {
   return { id, name, unit, price };
 }
 
+// La indicación sobrevive a los cambios de cantidad y a la sincronización.
+function keepNote(item: OrderItem | undefined) {
+  return item?.note ? { note: item.note } : {};
+}
+
 export function addToOrder(order: Order, product: OrderProduct): Order {
   const step = stepFor(product.unit);
   const quantity = roundToStep((order[product.id]?.quantity ?? 0) + step, step);
 
-  return { ...order, [product.id]: { ...snapshot(product), quantity } };
+  return {
+    ...order,
+    [product.id]: { ...snapshot(product), quantity, ...keepNote(order[product.id]) },
+  };
 }
 
 export function removeFromOrder(order: Order, product: Pick<OrderProduct, "id">): Order {
@@ -69,10 +79,22 @@ export function syncOrder(
 
     const base = product ? snapshot(product) : snapshot(item);
     const quantity = roundToStep(item.quantity, stepFor(base.unit));
-    if (quantity > 0) synced[id] = { ...base, quantity };
+    if (quantity > 0) synced[id] = { ...base, quantity, ...keepNote(item) };
   }
 
   return synced;
+}
+
+export function setNote(order: Order, id: string, note: string): Order {
+  const current = order[id];
+  if (!current) return order;
+
+  // Se guarda tal cual (el cliente la escribe letra a letra, con espacios);
+  // el mensaje de WhatsApp la recorta.
+  const item: OrderItem = { ...current };
+  if (note.trim()) item.note = note.slice(0, MAX_NOTE_LENGTH);
+  else delete item.note;
+  return { ...order, [id]: item };
 }
 
 function isOrderItem(value: unknown): value is OrderItem {
@@ -87,7 +109,8 @@ function isOrderItem(value: unknown): value is OrderItem {
     Number.isFinite(item.price) &&
     typeof item.quantity === "number" &&
     Number.isFinite(item.quantity) &&
-    item.quantity > 0
+    item.quantity > 0 &&
+    (item.note === undefined || typeof item.note === "string")
   );
 }
 

@@ -12,6 +12,11 @@ describe("withSiteConfigDefaults", () => {
     expect(config.primary_color).toBe("#9a3324");
     expect(config.latitude).toBeNull();
     expect(config.longitude).toBeNull();
+    expect(config.opening_hours).toBeNull();
+  });
+
+  it("descarta un horario guardado con forma inválida", () => {
+    expect(withSiteConfigDefaults({ opening_hours: "todos los días" as never }).opening_hours).toBeNull();
   });
 
   it("conserva una ubicación guardada, incluso en cero", () => {

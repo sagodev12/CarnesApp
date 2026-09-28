@@ -130,6 +130,15 @@ describe("createProduct", () => {
     expect(calls[0]).toMatchObject({ table: "products", op: "insert", payload: { description: "" } });
   });
 
+  it("guarda la marca de agotado", async () => {
+    await createProduct(
+      idle,
+      form({ name: "Chata", description: "", price: "32000", unit: "kg", order: "0", active: "on", sold_out: "on" }),
+    );
+
+    expect(calls[0]).toMatchObject({ table: "products", op: "insert", payload: { sold_out: true } });
+  });
+
   it("sin promoción guarda las columnas de promoción en null", async () => {
     await createProduct(idle, validProduct);
 

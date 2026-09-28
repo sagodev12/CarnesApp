@@ -29,7 +29,8 @@ export default function ProductCard({
   onOpen,
 }: ProductCardProps) {
   const selected = quantity !== undefined;
-  const onSale = isOnSale(product, now);
+  const soldOut = product.sold_out;
+  const onSale = !soldOut && isOnSale(product, now);
 
   return (
     <article
@@ -49,7 +50,9 @@ export default function ProductCard({
             alt=""
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`object-cover transition-transform duration-300 group-hover:scale-105 ${
+              soldOut ? "opacity-60 grayscale" : ""
+            }`}
           />
         ) : (
           <span className="flex h-full items-center justify-center text-charcoal/20">
@@ -59,6 +62,11 @@ export default function ProductCard({
         {product.category && (
           <span className="absolute left-3 top-3 rounded-full bg-cream/95 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-charcoal">
             {product.category.name}
+          </span>
+        )}
+        {soldOut && (
+          <span className="absolute right-3 top-3 rounded-full bg-charcoal px-3 py-1 text-sm font-semibold text-cream">
+            Agotado
           </span>
         )}
         {onSale && (
@@ -92,7 +100,12 @@ export default function ProductCard({
         <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-5">
           <PriceTag product={product} now={now} />
 
-          {canOrder &&
+          {canOrder && soldOut ? (
+            <span className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-charcoal/50">
+              No disponible
+            </span>
+          ) : (
+            canOrder &&
             (selected ? (
               <QuantityStepper
                 name={product.name}
@@ -110,7 +123,8 @@ export default function ProductCard({
                 <Plus size={16} />
                 Agregar
               </button>
-            ))}
+            ))
+          )}
         </div>
       </div>
     </article>

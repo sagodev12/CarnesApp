@@ -6,7 +6,7 @@ import { PUBLIC_PAGE_SIZE, pageRange, paginated, type Paginated } from "@/lib/pa
 import { createClient } from "@/lib/supabase/server";
 import type { Category, ProductWithCategory } from "@/types";
 
-import { searchOrFilter } from "./search";
+import { searchPage } from "./search";
 
 // Consultas del sitio público: usan la publishable key, así que dependen de
 // las políticas RLS (supabase/public-read-policies.sql): solo productos activos.
@@ -19,12 +19,24 @@ export const PRODUCTS_TAG = "products";
 const CACHE_SECONDS = 3600;
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, order, created_at, updated_at, category:categories(id, name)";
+  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, sold_out, order, created_at, updated_at, category:categories(id, name)";
 
 type PageQuery = { page: number; categoryId: string | null; search: string | null };
 
-export const getActiveProductsPage = unstable_cache(
-  async ({ page, categoryId, search }: PageQuery): Promise<Paginated<ProductWithCategory>> => {
+export async function getActiveProductsPage({
+  page,
+  categoryId,
+  search,
+}: PageQuery): Promise<Paginated<ProductWithCategory>> {
+  if (!search) return getCatalogPage({ page, categoryId });
+
+  // La búsqueda ignora tildes ("salmon" → "Salmón"), cosa que un ilike de
+  // Postgres no hace sin funciones SQL: se filtra aquí sobre el catálogo.
+  return searchPage(await getSearchableProducts(categoryId), search, page, PUBLIC_PAGE_SIZE);
+}
+
+const getCatalogPage = unstable_cache(
+  async ({ page, categoryId }: Omit<PageQuery, "search">): Promise<Paginated<ProductWithCategory>> => {
     const { from, to } = pageRange(page, PUBLIC_PAGE_SIZE);
 
     let query = createClient()
@@ -32,8 +44,6 @@ export const getActiveProductsPage = unstable_cache(
       .select(PRODUCT_COLUMNS, { count: "exact" })
       .eq("active", true);
     if (categoryId) query = query.eq("category_id", categoryId);
-    // search llega normalizado (normalizeSearch): seguro para el filtro or().
-    if (search) query = query.or(searchOrFilter(search));
 
     const { data, count, error } = await query
       .order("order")
@@ -49,6 +59,30 @@ export const getActiveProductsPage = unstable_cache(
   },
   // El tamaño de página va en la clave: si cambia, no se reusan páginas viejas.
   ["public-products-page", `size-${PUBLIC_PAGE_SIZE}`],
+  { tags: [PRODUCTS_TAG], revalidate: CACHE_SECONDS },
+);
+
+// Catálogo activo completo para buscar (una carnicería tiene decenas o pocos
+// cientos de productos). Una consulta cacheada por categoría, no por texto.
+const MAX_SEARCHABLE = 500;
+
+const getSearchableProducts = unstable_cache(
+  async (categoryId: string | null): Promise<ProductWithCategory[]> => {
+    let query = createClient().from("products").select(PRODUCT_COLUMNS).eq("active", true);
+    if (categoryId) query = query.eq("category_id", categoryId);
+
+    const { data, error } = await query
+      .order("order")
+      .order("created_at", { ascending: false })
+      .order("id")
+      .limit(MAX_SEARCHABLE)
+      .overrideTypes<ProductWithCategory[], { merge: false }>();
+
+    if (error) throw new Error(`No se pudieron buscar los productos: ${error.message}`);
+
+    return data;
+  },
+  ["public-searchable-products", `max-${MAX_SEARCHABLE}`],
   { tags: [PRODUCTS_TAG], revalidate: CACHE_SECONDS },
 );
 

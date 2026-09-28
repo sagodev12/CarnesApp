@@ -1,9 +1,39 @@
-import Header from "@/components/public/Header";
+import type { Metadata } from "next";
+
+import FloatingWhatsApp from "@/components/public/FloatingWhatsApp";
 import Footer from "@/components/public/Footer";
-import WhatsAppButton from "@/components/public/WhatsAppButton";
+import Header from "@/components/public/Header";
 import { toCoordinates } from "@/lib/location";
 import { brandHighlight } from "@/lib/site-config/defaults";
 import { getSiteConfig } from "@/lib/site-config/queries";
+
+// Título, descripción e imagen al compartir el link (WhatsApp, Facebook…).
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+  const title = config.business_name;
+  const description = config.description ?? undefined;
+  const image = config.hero_image_url ?? config.logo_url;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: title,
+      locale: "es_CO",
+      type: "website",
+      images: image ? [{ url: image, alt: title }] : undefined,
+    },
+    twitter: {
+      card: config.hero_image_url ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
+    icons: config.logo_url ? { icon: config.logo_url, apple: config.logo_url } : undefined,
+  };
+}
 
 export default async function PublicLayout({
   children,
@@ -31,11 +61,7 @@ export default async function PublicLayout({
       <main className="flex-1">{children}</main>
       <Footer config={config} highlight={highlight} />
       {config.phone_whatsapp && (
-        <WhatsAppButton
-          phone={config.phone_whatsapp}
-          message={config.whatsapp_message}
-          floating
-        />
+        <FloatingWhatsApp phone={config.phone_whatsapp} message={config.whatsapp_message} />
       )}
     </div>
   );

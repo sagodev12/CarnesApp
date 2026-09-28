@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { DAY_NAMES, isValidDay, isValidTime, type DayHours } from "@/lib/hours";
 import { roundCoordinate } from "@/lib/location";
 import { normalizePhone } from "@/lib/whatsapp";
 
@@ -37,6 +38,31 @@ const optionalCoordinate = (limit: number) =>
       .nullable(),
   );
 
+// Horario: 7 días (0 = domingo) leídos del formulario. Un día sin marcar
+// queda cerrado; si ningún día está marcado, no hay horario.
+type DayInput = { enabled: boolean; open: string; close: string };
+
+const openingHoursSchema = z
+  .array(z.object({ enabled: z.boolean(), open: z.string(), close: z.string() }))
+  .length(7)
+  .superRefine((days: DayInput[], ctx) => {
+    days.forEach((day, index) => {
+      if (!day.enabled) return;
+      const name = DAY_NAMES[index][0].toUpperCase() + DAY_NAMES[index].slice(1);
+
+      if (!isValidTime(day.open) || !isValidTime(day.close)) {
+        ctx.addIssue({ code: "custom", message: `${name}: indica la hora de apertura y de cierre` });
+      } else if (!isValidDay(day)) {
+        ctx.addIssue({ code: "custom", message: `${name}: la hora de cierre debe ser después de la apertura` });
+      }
+    });
+  })
+  .transform((days): (DayHours | null)[] | null =>
+    days.some((day) => day.enabled)
+      ? days.map(({ enabled, open, close }) => (enabled ? { open, close } : null))
+      : null,
+  );
+
 export const siteConfigSchema = z
   .object({
     business_name: z
@@ -69,6 +95,7 @@ export const siteConfigSchema = z
     remove_hero: z.boolean(),
     latitude: optionalCoordinate(90),
     longitude: optionalCoordinate(180),
+    opening_hours: openingHoursSchema,
   })
   .superRefine(({ latitude, longitude }, ctx) => {
     if ((latitude === null) !== (longitude === null)) {
@@ -95,5 +122,10 @@ export function parseSiteConfigFormData(formData: FormData) {
     remove_hero: checkbox(formData, "remove_hero"),
     latitude: text(formData, "latitude"),
     longitude: text(formData, "longitude"),
+    opening_hours: Array.from({ length: 7 }, (_, day) => ({
+      enabled: checkbox(formData, `hours_${day}_enabled`),
+      open: text(formData, `hours_${day}_open`),
+      close: text(formData, `hours_${day}_close`),
+    })),
   });
 }
