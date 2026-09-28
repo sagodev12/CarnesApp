@@ -10,6 +10,15 @@ describe("withSiteConfigDefaults", () => {
     expect(config.business_name).toBeTruthy();
     expect(config.phone_whatsapp).toBe("");
     expect(config.primary_color).toBe("#9a3324");
+    expect(config.latitude).toBeNull();
+    expect(config.longitude).toBeNull();
+  });
+
+  it("conserva una ubicación guardada, incluso en cero", () => {
+    expect(withSiteConfigDefaults({ latitude: 0, longitude: -74.08 })).toMatchObject({
+      latitude: 0,
+      longitude: -74.08,
+    });
   });
 
   it("respeta los valores guardados y completa los nulos", () => {

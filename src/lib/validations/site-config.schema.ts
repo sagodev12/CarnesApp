@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { roundCoordinate } from "@/lib/location";
 import { normalizePhone } from "@/lib/whatsapp";
 
 import { checkbox, file, optionalImageSchema, text } from "./common";
@@ -24,36 +25,56 @@ const optionalUrl = z
   .pipe(z.union([z.literal(""), z.url({ error: "Ingresa un enlace válido" })]))
   .transform((value) => value || null);
 
-export const siteConfigSchema = z.object({
-  business_name: z
-    .string()
-    .trim()
-    .min(2, "El nombre debe tener al menos 2 caracteres")
-    .max(80, "Máximo 80 caracteres"),
-  description: optionalText(300),
-  address: optionalText(150),
-  schedule: optionalText(150),
-  // Vacío = sin WhatsApp (se ocultan los botones de pedido).
-  phone_whatsapp: z
-    .string()
-    .transform(normalizePhone)
-    .refine(
-      (phone) => phone === "" || (phone.length >= 10 && phone.length <= 15),
-      "Número inválido: incluye el indicativo del país (ej: 57 312 000 0000)",
-    ),
-  whatsapp_message: optionalText(200),
-  instagram: optionalUrl,
-  facebook: optionalUrl,
-  primary_color: z
-    .string()
-    .trim()
-    .regex(/^#[0-9a-f]{6}$/i, "Usa un color en formato #RRGGBB")
-    .transform((value) => value.toLowerCase()),
-  logo: optionalImageSchema,
-  hero: optionalImageSchema,
-  remove_logo: z.boolean(),
-  remove_hero: z.boolean(),
-});
+// Coordenada opcional (la llena el mapa del panel); vacío = null.
+const optionalCoordinate = (limit: number) =>
+  z.preprocess(
+    (value) => (value === "" || value == null ? null : value),
+    z.coerce
+      .number({ error: "Coordenada inválida" })
+      .min(-limit, "Coordenada fuera de rango")
+      .max(limit, "Coordenada fuera de rango")
+      .transform(roundCoordinate)
+      .nullable(),
+  );
+
+export const siteConfigSchema = z
+  .object({
+    business_name: z
+      .string()
+      .trim()
+      .min(2, "El nombre debe tener al menos 2 caracteres")
+      .max(80, "Máximo 80 caracteres"),
+    description: optionalText(300),
+    address: optionalText(150),
+    schedule: optionalText(150),
+    // Vacío = sin WhatsApp (se ocultan los botones de pedido).
+    phone_whatsapp: z
+      .string()
+      .transform(normalizePhone)
+      .refine(
+        (phone) => phone === "" || (phone.length >= 10 && phone.length <= 15),
+        "Número inválido: incluye el indicativo del país (ej: 57 312 000 0000)",
+      ),
+    whatsapp_message: optionalText(200),
+    instagram: optionalUrl,
+    facebook: optionalUrl,
+    primary_color: z
+      .string()
+      .trim()
+      .regex(/^#[0-9a-f]{6}$/i, "Usa un color en formato #RRGGBB")
+      .transform((value) => value.toLowerCase()),
+    logo: optionalImageSchema,
+    hero: optionalImageSchema,
+    remove_logo: z.boolean(),
+    remove_hero: z.boolean(),
+    latitude: optionalCoordinate(90),
+    longitude: optionalCoordinate(180),
+  })
+  .superRefine(({ latitude, longitude }, ctx) => {
+    if ((latitude === null) !== (longitude === null)) {
+      ctx.addIssue({ code: "custom", path: ["latitude"], message: "Marca la ubicación en el mapa" });
+    }
+  });
 
 export type SiteConfigInput = z.infer<typeof siteConfigSchema>;
 
@@ -72,5 +93,7 @@ export function parseSiteConfigFormData(formData: FormData) {
     hero: file(formData, "hero"),
     remove_logo: checkbox(formData, "remove_logo"),
     remove_hero: checkbox(formData, "remove_hero"),
+    latitude: text(formData, "latitude"),
+    longitude: text(formData, "longitude"),
   });
 }

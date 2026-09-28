@@ -206,4 +206,25 @@ describe("updateSiteConfig", () => {
     );
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
+
+  it("guarda la ubicación del local", async () => {
+    const withLocation = form({
+      business_name: "Surticarnes",
+      phone_whatsapp: "3123627031",
+      primary_color: "#9a3324",
+      latitude: "4.609711",
+      longitude: "-74.08175",
+    });
+
+    const state = await updateSiteConfig(idle, withLocation);
+
+    expect(state.status).toBe("success");
+    expect(calls).toContainEqual(
+      expect.objectContaining({
+        table: "site_config",
+        op: "update",
+        payload: expect.objectContaining({ latitude: 4.609711, longitude: -74.08175 }),
+      }),
+    );
+  });
 });

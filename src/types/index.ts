@@ -40,4 +40,7 @@ export type SiteConfig = {
   instagram: string | null;
   facebook: string | null;
   primary_color: string | null;
+  // Ubicación del local (ambas null = sin mapa).
+  latitude: number | null;
+  longitude: number | null;
 };

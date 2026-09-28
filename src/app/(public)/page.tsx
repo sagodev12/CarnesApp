@@ -1,6 +1,8 @@
 import Image from "next/image";
 
 import ProductGallery from "@/components/public/gallery/ProductGallery";
+import VisitSection from "@/components/public/VisitSection";
+import { toCoordinates } from "@/lib/location";
 import { PUBLIC_PAGE_SIZE, paginated } from "@/lib/pagination";
 import {
   getActiveProductsPage,
@@ -28,6 +30,7 @@ export default async function Home() {
     }),
   ]);
   const hasProducts = firstPage.total > 0;
+  const coordinates = toCoordinates(config);
   // Hora del render (Server Component: se calcula una vez por render). La
   // galería la usa al hidratar para decidir qué ofertas están vigentes.
   const renderedAt = new Date().getTime();
@@ -77,7 +80,13 @@ export default async function Home() {
         </div>
       </section>
 
-      <section id="productos" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-32 pt-12 sm:px-6 lg:px-8">
+      {/* La última sección deja espacio abajo para la barra del pedido (fija). */}
+      <section
+        id="productos"
+        className={`mx-auto max-w-6xl scroll-mt-20 px-4 pt-12 sm:px-6 lg:px-8 ${
+          coordinates ? "pb-16" : "pb-32"
+        }`}
+      >
         <header className="mb-8">
           <h2 className="font-display text-3xl font-black sm:text-4xl">Nuestros productos</h2>
           {config.phone_whatsapp && hasProducts && (
@@ -96,6 +105,8 @@ export default async function Home() {
           greeting={config.whatsapp_message}
         />
       </section>
+
+      {coordinates && <VisitSection config={config} coordinates={coordinates} />}
     </>
   );
 }

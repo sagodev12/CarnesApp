@@ -6,20 +6,26 @@ import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import BrandName from "@/components/public/Brandname";
 
-const NAV_LINKS = [
-  { href: "#productos", label: "Productos" },
-  { href: "#nosotros", label: "Nosotros" },
-  { href: "#contacto", label: "Contacto" },
-];
+const LINKS = {
+  products: { href: "#productos", label: "Productos" },
+  about: { href: "#nosotros", label: "Nosotros" },
+  location: { href: "#ubicacion", label: "Ubicación" },
+  contact: { href: "#contacto", label: "Contacto" },
+};
 
 type HeaderProps = {
   businessName: string;
   highlight?: string;
   logoUrl: string | null;
+  // Con ubicación configurada existe la sección #ubicacion.
+  hasLocation: boolean;
 };
 
-export default function Header({ businessName, highlight, logoUrl }: HeaderProps) {
+export default function Header({ businessName, highlight, logoUrl, hasLocation }: HeaderProps) {
   const [open, setOpen] = useState(false);
+  const navLinks = hasLocation
+    ? [LINKS.products, LINKS.about, LINKS.location, LINKS.contact]
+    : [LINKS.products, LINKS.about, LINKS.contact];
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-cream/95 backdrop-blur">
@@ -46,7 +52,7 @@ export default function Header({ businessName, highlight, logoUrl }: HeaderProps
 
         {/* Nav desktop */}
         <nav className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -72,7 +78,7 @@ export default function Header({ businessName, highlight, logoUrl }: HeaderProps
       {/* Menú mobile */}
       {open && (
         <nav className="flex flex-col gap-1 border-t border-line bg-cream px-4 pb-4 pt-2 md:hidden">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}

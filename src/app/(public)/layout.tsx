@@ -1,6 +1,7 @@
 import Header from "@/components/public/Header";
 import Footer from "@/components/public/Footer";
 import WhatsAppButton from "@/components/public/WhatsAppButton";
+import { toCoordinates } from "@/lib/location";
 import { brandHighlight } from "@/lib/site-config/defaults";
 import { getSiteConfig } from "@/lib/site-config/queries";
 
@@ -25,6 +26,7 @@ export default async function PublicLayout({
         businessName={config.business_name}
         highlight={highlight}
         logoUrl={config.logo_url}
+        hasLocation={toCoordinates(config) !== null}
       />
       <main className="flex-1">{children}</main>
       <Footer config={config} highlight={highlight} />

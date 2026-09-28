@@ -13,6 +13,8 @@ const DEFAULTS: SiteConfig = {
   instagram: null,
   facebook: null,
   primary_color: "#9a3324",
+  latitude: null,
+  longitude: null,
 };
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;

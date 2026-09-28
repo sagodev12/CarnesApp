@@ -80,4 +80,39 @@ describe("parseSiteConfigFormData", () => {
 
     expect(result.data).toMatchObject({ remove_logo: true, remove_hero: true });
   });
+
+  it("sin ubicación guarda latitud y longitud en null", () => {
+    expect(parseSiteConfigFormData(configForm()).data).toMatchObject({
+      latitude: null,
+      longitude: null,
+    });
+  });
+
+  it("lee la ubicación y la redondea a 6 decimales", () => {
+    const result = parseSiteConfigFormData(
+      configForm({ latitude: "4.6097112345", longitude: "-74.0817549999" }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ latitude: 4.609711, longitude: -74.081755 });
+  });
+
+  it("exige latitud y longitud juntas", () => {
+    const result = parseSiteConfigFormData(configForm({ latitude: "4.6", longitude: "" }));
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["latitude"]);
+  });
+
+  it("rechaza coordenadas fuera de rango o que no son números", () => {
+    expect(
+      parseSiteConfigFormData(configForm({ latitude: "91", longitude: "0" })).success,
+    ).toBe(false);
+    expect(
+      parseSiteConfigFormData(configForm({ latitude: "0", longitude: "-181" })).success,
+    ).toBe(false);
+    expect(
+      parseSiteConfigFormData(configForm({ latitude: "abc", longitude: "1" })).success,
+    ).toBe(false);
+  });
 });

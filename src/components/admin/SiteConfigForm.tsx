@@ -13,8 +13,11 @@ import {
   pick,
 } from "@/components/ui/form";
 import { initialFormState } from "@/lib/forms";
+import { toCoordinates } from "@/lib/location";
 import { ACCEPTED_IMAGE_TYPES } from "@/lib/validations/common";
 import type { SiteConfig } from "@/types";
+
+import LocationPicker from "./LocationPicker";
 
 export default function SiteConfigForm({ config }: { config: SiteConfig }) {
   const [state, formAction, pending] = useActionState(updateSiteConfig, initialFormState);
@@ -189,6 +192,17 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
             />
           </Field>
         </div>
+      </Section>
+
+      <Section
+        title="Ubicación"
+        description="Aparece como mapa en la sección “Visítanos” de la página, con un botón para llegar."
+      >
+        <LocationPicker
+          initial={toCoordinates(config)}
+          address={config.address}
+          error={errors.latitude?.[0]}
+        />
       </Section>
 
       <div className="flex justify-end">

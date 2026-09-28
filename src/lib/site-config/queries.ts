@@ -13,7 +13,7 @@ export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
   const { data, error } = await createClient()
     .from("site_config")
     .select(
-      "id, business_name, logo_url, hero_image_url, description, address, phone_whatsapp, whatsapp_message, schedule, instagram, facebook, primary_color",
+      "id, business_name, logo_url, hero_image_url, description, address, phone_whatsapp, whatsapp_message, schedule, instagram, facebook, primary_color, latitude, longitude",
     )
     .eq("singleton", true)
     .maybeSingle();

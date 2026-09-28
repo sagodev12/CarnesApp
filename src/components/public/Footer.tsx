@@ -1,6 +1,7 @@
 import { Clock, MapPin, PhoneIcon } from "lucide-react";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 
+import { googleMapsDirectionsUrl, toCoordinates } from "@/lib/location";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { SiteConfig } from "@/types";
 
@@ -27,6 +28,7 @@ export default function Footer({ config, highlight }: FooterProps) {
     instagram,
     facebook,
   } = config;
+  const coordinates = toCoordinates(config);
 
   return (
     <footer id="contacto" className="border-t border-line bg-charcoal text-cream">
@@ -46,7 +48,18 @@ export default function Footer({ config, highlight }: FooterProps) {
           {address && (
             <p className="flex items-center gap-2">
               <MapPin size={16} className="shrink-0 text-mustard" />
-              {address}
+              {coordinates ? (
+                <a
+                  href={googleMapsDirectionsUrl(coordinates)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-mustard"
+                >
+                  {address}
+                </a>
+              ) : (
+                address
+              )}
             </p>
           )}
 
