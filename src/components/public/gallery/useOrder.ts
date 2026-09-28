@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 
 import {
   addToOrder,
@@ -9,10 +9,11 @@ import {
   orderTotal,
   parseStoredOrder,
   removeFromOrder,
-  sanitizeOrder,
+  syncOrder,
   type Order,
   type OrderProduct,
 } from "@/lib/order";
+import { MAX_IDS } from "@/lib/products/query-params";
 
 const STORAGE_KEY = "carnesapp:order";
 const CHANGE_EVENT = "carnesapp:order-change";
@@ -51,15 +52,38 @@ function subscribe(onChange: () => void) {
   };
 }
 
-export function useOrder(products: OrderProduct[]) {
+// Revalida el pedido guardado contra el servidor una vez por carga de página:
+// quita productos inactivos/eliminados y actualiza precios y nombres.
+let validated = false;
+
+async function validateStoredOrder() {
+  const order = parseStoredOrder(readRaw());
+  const ids = Object.keys(order).slice(0, MAX_IDS);
+  if (ids.length === 0) return;
+
+  try {
+    const response = await fetch(`/api/products?ids=${ids.join(",")}`);
+    if (!response.ok) return; // Sin conexión o error: se conserva lo guardado.
+
+    const { items } = (await response.json()) as { items: OrderProduct[] };
+    // Se relee por si el cliente cambió el pedido mientras llegaba la respuesta.
+    writeOrder(syncOrder(parseStoredOrder(readRaw()), items, { dropMissing: true }));
+  } catch {
+    // Se conserva lo guardado.
+  }
+}
+
+export function useOrder() {
   // En el servidor no hay pedido: se hidrata vacío y luego se lee el guardado.
   const raw = useSyncExternalStore(subscribe, readRaw, () => null);
+  const order = useMemo(() => parseStoredOrder(raw), [raw]);
+  const lines = useMemo(() => orderLines(order), [order]);
 
-  const order = useMemo(
-    () => sanitizeOrder(parseStoredOrder(raw), products),
-    [raw, products],
-  );
-  const lines = useMemo(() => orderLines(order, products), [order, products]);
+  useEffect(() => {
+    if (validated) return;
+    validated = true;
+    void validateStoredOrder();
+  }, []);
 
   const add = useCallback(
     (product: OrderProduct) => writeOrder(addToOrder(order, product)),

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -24,6 +24,9 @@ function productRow(data: ProductInput) {
 function revalidateProducts() {
   revalidatePath("/admin/productos");
   revalidatePath("/", "layout");
+  // Caché de la galería (unstable_cache): expire 0 = el próximo visitante
+  // ya ve el cambio, sin servir la versión vieja.
+  revalidateTag("products", { expire: 0 });
 }
 
 export async function createProduct(

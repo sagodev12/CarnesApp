@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { assertAdmin } from "@/lib/auth/admin";
@@ -15,6 +15,8 @@ function revalidateCategories() {
   revalidatePath("/admin/categorias");
   revalidatePath("/admin/productos");
   revalidatePath("/", "layout");
+  // Los productos cacheados incluyen el nombre de su categoría.
+  revalidateTag("products", { expire: 0 });
 }
 
 export async function createCategory(

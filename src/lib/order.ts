@@ -1,7 +1,6 @@
 // Lógica pura del pedido de la galería (sin React ni localStorage) para
-// poder probarla aislada. El pedido es un mapa { productId: cantidad }.
-export type Order = Record<string, number>;
-
+// poder probarla aislada. Con la galería paginada, el pedido guarda una copia
+// de cada producto: así puede mostrar productos de páginas no cargadas.
 export type OrderProduct = {
   id: string;
   name: string;
@@ -9,7 +8,8 @@ export type OrderProduct = {
   price: number;
 };
 
-export type OrderLineItem = OrderProduct & { quantity: number };
+export type OrderItem = OrderProduct & { quantity: number };
+export type Order = Record<string, OrderItem>;
 
 const WEIGHT_UNITS = new Set(["kg", "lb"]);
 
@@ -22,14 +22,18 @@ function roundToStep(quantity: number, step: number) {
   return Math.round(quantity / step) * step;
 }
 
-export function addToOrder(order: Order, product: OrderProduct): Order {
-  const step = stepFor(product.unit);
-  const quantity = roundToStep((order[product.id] ?? 0) + step, step);
-
-  return { ...order, [product.id]: quantity };
+function snapshot({ id, name, unit, price }: OrderProduct): OrderProduct {
+  return { id, name, unit, price };
 }
 
-export function removeFromOrder(order: Order, product: OrderProduct): Order {
+export function addToOrder(order: Order, product: OrderProduct): Order {
+  const step = stepFor(product.unit);
+  const quantity = roundToStep((order[product.id]?.quantity ?? 0) + step, step);
+
+  return { ...order, [product.id]: { ...snapshot(product), quantity } };
+}
+
+export function removeFromOrder(order: Order, product: Pick<OrderProduct, "id">): Order {
   if (!(product.id in order)) return order;
 
   const rest = { ...order };
@@ -39,29 +43,52 @@ export function removeFromOrder(order: Order, product: OrderProduct): Order {
 
 export function decrementInOrder(order: Order, product: OrderProduct): Order {
   const current = order[product.id];
-  if (current === undefined) return order;
+  if (!current) return order;
 
-  const step = stepFor(product.unit);
-  const quantity = roundToStep(current - step, step);
+  const step = stepFor(current.unit);
+  const quantity = roundToStep(current.quantity - step, step);
 
-  return quantity > 0 ? { ...order, [product.id]: quantity } : removeFromOrder(order, product);
+  return quantity > 0
+    ? { ...order, [product.id]: { ...current, quantity } }
+    : removeFromOrder(order, product);
 }
 
-// Limpia un pedido guardado: quita productos que ya no están disponibles y
-// cantidades inválidas, y ajusta cada cantidad al paso de su unidad.
-export function sanitizeOrder(order: Order, products: OrderProduct[]): Order {
-  const byId = new Map(products.map((product) => [product.id, product]));
-  const clean: Order = {};
+// Actualiza las copias con datos frescos del servidor. Con dropMissing, quita
+// los productos que ya no llegaron (inactivos o eliminados).
+export function syncOrder(
+  order: Order,
+  fresh: OrderProduct[],
+  { dropMissing }: { dropMissing: boolean },
+): Order {
+  const byId = new Map(fresh.map((product) => [product.id, product]));
+  const synced: Order = {};
 
-  for (const [id, rawQuantity] of Object.entries(order)) {
+  for (const [id, item] of Object.entries(order)) {
     const product = byId.get(id);
-    if (!product || !Number.isFinite(rawQuantity)) continue;
+    if (!product && dropMissing) continue;
 
-    const quantity = roundToStep(rawQuantity, stepFor(product.unit));
-    if (quantity > 0) clean[id] = quantity;
+    const base = product ? snapshot(product) : snapshot(item);
+    const quantity = roundToStep(item.quantity, stepFor(base.unit));
+    if (quantity > 0) synced[id] = { ...base, quantity };
   }
 
-  return clean;
+  return synced;
+}
+
+function isOrderItem(value: unknown): value is OrderItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+
+  return (
+    typeof item.id === "string" &&
+    typeof item.name === "string" &&
+    (typeof item.unit === "string" || item.unit === null) &&
+    typeof item.price === "number" &&
+    Number.isFinite(item.price) &&
+    typeof item.quantity === "number" &&
+    Number.isFinite(item.quantity) &&
+    item.quantity > 0
+  );
 }
 
 export function parseStoredOrder(raw: string | null): Order {
@@ -71,21 +98,20 @@ export function parseStoredOrder(raw: string | null): Order {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
 
-    const entries = Object.entries(parsed);
-    if (!entries.every(([, value]) => typeof value === "number")) return {};
-
-    return Object.fromEntries(entries) as Order;
+    const order: Order = {};
+    for (const [id, item] of Object.entries(parsed)) {
+      if (isOrderItem(item) && item.id === id) order[id] = item;
+    }
+    return order;
   } catch {
     return {};
   }
 }
 
-export function orderLines(order: Order, products: OrderProduct[]): OrderLineItem[] {
-  return products
-    .filter((product) => order[product.id] > 0)
-    .map(({ id, name, unit, price }) => ({ id, name, unit, price, quantity: order[id] }));
+export function orderLines(order: Order): OrderItem[] {
+  return Object.values(order);
 }
 
-export function orderTotal(lines: Pick<OrderLineItem, "price" | "quantity">[]) {
+export function orderTotal(lines: Pick<OrderItem, "price" | "quantity">[]) {
   return lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
 }

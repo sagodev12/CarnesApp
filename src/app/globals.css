@@ -12,6 +12,43 @@
   --color-line: #d8c9ae;
 }
 
+html {
+  /* Evita que el tema oscuro del sistema pinte controles y barras oscuras. */
+  color-scheme: light;
+}
+
 body {
   background-color: var(--color-cream);
+}
+
+/* Barras de desplazamiento finas con los colores del sitio.
+   Estándar (Chrome 121+, Firefox) y fallback -webkit- para Safari. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-charcoal) 35%, transparent) transparent;
+}
+
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--color-charcoal) 35%, transparent);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-brick);
+  }
+}
+
+/* Con un modal abierto, la página de fondo no se desplaza. */
+html:has(dialog[open]) {
+  overflow: hidden;
 }

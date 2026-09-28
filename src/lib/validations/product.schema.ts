@@ -53,3 +53,8 @@ export function parseProductFormData(formData: FormData) {
     remove_image: checkbox(formData, "remove_image"),
   });
 }
+
+export function unitLabel(unit: string | null) {
+  if (!unit) return "";
+  return PRODUCT_UNITS.find((u) => u.value === unit)?.label.toLowerCase() ?? unit;
+}

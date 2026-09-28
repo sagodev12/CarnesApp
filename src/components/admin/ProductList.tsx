@@ -3,16 +3,13 @@ import Link from "next/link";
 import { ImageOff, PackageOpen, Pencil } from "lucide-react";
 
 import { formatPrice } from "@/lib/format";
-import { PRODUCT_UNITS } from "@/lib/validations/product.schema";
+import { unitLabel } from "@/lib/validations/product.schema";
 import type { ProductWithCategory } from "@/types";
 
 type ProductListProps = {
   products: ProductWithCategory[];
 };
 
-function unitLabel(unit: string | null) {
-  return PRODUCT_UNITS.find((u) => u.value === unit)?.label.toLowerCase() ?? unit;
-}
 
 export default function ProductList({ products }: ProductListProps) {
   if (products.length === 0) {

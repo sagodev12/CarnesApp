@@ -29,7 +29,11 @@ vi.mock("@/lib/supabase/storage", () => ({
 }));
 
 const revalidatePath = vi.fn();
-vi.mock("next/cache", () => ({ revalidatePath: (...args: unknown[]) => revalidatePath(...args) }));
+const revalidateTag = vi.fn();
+vi.mock("next/cache", () => ({
+  revalidatePath: (...args: unknown[]) => revalidatePath(...args),
+  revalidateTag: (...args: unknown[]) => revalidateTag(...args),
+}));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`REDIRECT:${url}`);
@@ -95,6 +99,8 @@ describe("createCategory", () => {
     expect(calls).toContainEqual({ table: "categories", op: "insert", payload: { name: "Res", order: 1 } });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/categorias");
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+    // Los productos incluyen el nombre de su categoría.
+    expect(revalidateTag).toHaveBeenCalledWith("products", { expire: 0 });
   });
 });
 
@@ -123,6 +129,12 @@ describe("createProduct", () => {
     expect(state.status).toBe("success");
     expect(calls[0]).toMatchObject({ table: "products", op: "insert", payload: { description: "" } });
   });
+
+  it("invalida la caché de productos de la galería de inmediato", async () => {
+    await createProduct(idle, validProduct);
+
+    expect(revalidateTag).toHaveBeenCalledWith("products", { expire: 0 });
+  });
 });
 
 describe("updateProduct", () => {
@@ -133,6 +145,7 @@ describe("updateProduct", () => {
     expect(calls).toContainEqual(
       expect.objectContaining({ table: "products", op: "update" }),
     );
+    expect(revalidateTag).toHaveBeenCalledWith("products", { expire: 0 });
   });
 
   it("rechaza ids que no son uuid", async () => {

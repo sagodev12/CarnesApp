@@ -1,24 +1,31 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import ProductList from "@/components/admin/ProductList";
+import Pagination from "@/components/ui/Pagination";
+import { ProductGridSkeleton } from "@/components/ui/Skeleton";
 import { requireAdminPage } from "@/lib/auth/admin";
-import { getAllProducts } from "@/lib/products/queries";
+import { ADMIN_PAGE_SIZE, parsePage } from "@/lib/pagination";
+import { getProductCounts, getProductsPage } from "@/lib/products/queries";
 
 export const metadata: Metadata = {
   title: "Productos · Panel admin",
   robots: { index: false },
 };
 
-export default async function AdminProductsPage() {
+const hrefFor = (page: number) =>
+  page === 1 ? "/admin/productos" : `/admin/productos?pagina=${page}`;
+
+export default async function AdminProductsPage(props: PageProps<"/admin/productos">) {
   // El layout ya protege la ruta, pero las páginas se pueden renderizar en
   // paralelo al layout: se verifica también aquí antes de leer con service_role.
   const admin = await requireAdminPage("/admin/productos");
   if (admin.status !== "admin") return null;
 
-  const products = await getAllProducts();
-  const hidden = products.filter((product) => !product.active).length;
+  const page = parsePage((await props.searchParams).pagina);
+  const { total, hidden } = await getProductCounts();
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -26,7 +33,7 @@ export default async function AdminProductsPage() {
         <div>
           <h1 className="font-display text-3xl font-black">Productos</h1>
           <p className="mt-1 text-charcoal/70">
-            {products.length} {products.length === 1 ? "producto" : "productos"}
+            {total} {total === 1 ? "producto" : "productos"}
             {hidden > 0 && ` · ${hidden} ${hidden === 1 ? "oculto" : "ocultos"}`}
           </p>
         </div>
@@ -39,7 +46,24 @@ export default async function AdminProductsPage() {
         </Link>
       </header>
 
-      <ProductList products={products} />
+      {/* key: al cambiar de página vuelve a mostrarse el skeleton. */}
+      <Suspense
+        key={page}
+        fallback={<ProductGridSkeleton count={Math.min(total || 6, ADMIN_PAGE_SIZE)} variant="admin" />}
+      >
+        <ProductsSection page={page} />
+      </Suspense>
     </section>
+  );
+}
+
+async function ProductsSection({ page }: { page: number }) {
+  const result = await getProductsPage(page);
+
+  return (
+    <div className="space-y-8">
+      <ProductList products={result.items} />
+      <Pagination page={result.page} totalPages={result.totalPages} hrefFor={hrefFor} />
+    </div>
   );
 }

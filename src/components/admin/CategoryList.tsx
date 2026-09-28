@@ -9,11 +9,10 @@ import type { FormState } from "@/lib/forms";
 import type { Category } from "@/types";
 
 type CategoryListProps = {
-  categories: Category[];
-  productCounts: Record<string, number>;
+  categories: (Category & { productCount: number })[];
 };
 
-export default function CategoryList({ categories, productCounts }: CategoryListProps) {
+export default function CategoryList({ categories }: CategoryListProps) {
   // Id de la categoría que está pidiendo confirmación para eliminarse.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [result, setResult] = useState<FormState>({ status: "idle" });
@@ -44,7 +43,7 @@ export default function CategoryList({ categories, productCounts }: CategoryList
 
       <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-white/60">
         {categories.map((category) => {
-          const count = productCounts[category.id] ?? 0;
+          const count = category.productCount;
           const confirming = confirmingId === category.id;
 
           return (

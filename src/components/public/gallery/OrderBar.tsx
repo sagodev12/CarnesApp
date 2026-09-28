@@ -5,13 +5,13 @@ import { ChevronUp, ShoppingBasket, Trash2, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
 import { formatPrice } from "@/lib/format";
-import type { OrderLineItem, OrderProduct } from "@/lib/order";
+import type { OrderItem, OrderProduct } from "@/lib/order";
 import { buildOrderMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 
 import QuantityStepper from "./QuantityStepper";
 
 type OrderBarProps = {
-  lines: OrderLineItem[];
+  lines: OrderItem[];
   total: number;
   phone: string;
   greeting: string | null;

@@ -1,18 +1,24 @@
 import Image from "next/image";
 
 import ProductGallery from "@/components/public/gallery/ProductGallery";
-import { getActiveProducts, getPublicCategories } from "@/lib/products/public-queries";
+import { PUBLIC_PAGE_SIZE, paginated } from "@/lib/pagination";
+import { getActiveProductsPage, getPublicCategories } from "@/lib/products/public-queries";
 import { getSiteConfig } from "@/lib/site-config/queries";
 
 // Respaldo: el panel revalida esta página al guardar (revalidatePath).
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [config, products, categories] = await Promise.all([
+  const [config, firstPage, categories] = await Promise.all([
     getSiteConfig(),
-    getActiveProducts(),
+    // Si falla, la landing se muestra igual (sin productos) en vez de romperse.
+    getActiveProductsPage({ page: 1, categoryId: null }).catch((error) => {
+      console.error(error);
+      return paginated([], 0, 1, PUBLIC_PAGE_SIZE);
+    }),
     getPublicCategories(),
   ]);
+  const hasProducts = firstPage.total > 0;
 
   return (
     <>
@@ -48,7 +54,7 @@ export default async function Home() {
               {config.description}
             </p>
           )}
-          {products.length > 0 && (
+          {hasProducts && (
             <a
               href="#productos"
               className="mt-8 inline-flex rounded-lg bg-brick px-6 py-3 font-semibold text-cream transition-colors hover:bg-brick-dark"
@@ -62,7 +68,7 @@ export default async function Home() {
       <section id="productos" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-32 pt-12 sm:px-6 lg:px-8">
         <header className="mb-8">
           <h2 className="font-display text-3xl font-black sm:text-4xl">Nuestros productos</h2>
-          {config.phone_whatsapp && products.length > 0 && (
+          {config.phone_whatsapp && hasProducts && (
             <p className="mt-2 text-charcoal/70">
               Elige lo que necesitas y envíanos tu pedido por WhatsApp.
             </p>
@@ -70,7 +76,7 @@ export default async function Home() {
         </header>
 
         <ProductGallery
-          products={products}
+          initialPage={firstPage}
           categories={categories}
           phone={config.phone_whatsapp}
           greeting={config.whatsapp_message}

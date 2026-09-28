@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseProductFormData } from "./product.schema";
+import { parseProductFormData, unitLabel } from "./product.schema";
 
 const CATEGORY_ID = "4352e764-3ae0-43f0-ac77-dce1563944c7";
 
@@ -97,5 +97,17 @@ describe("parseProductFormData", () => {
     expect(
       parseProductFormData(productForm({ remove_image: "on" })).data?.remove_image,
     ).toBe(true);
+  });
+});
+
+describe("unitLabel", () => {
+  it("traduce la unidad a texto en minúscula", () => {
+    expect(unitLabel("kg")).toBe("kilo");
+    expect(unitLabel("unidad")).toBe("unidad");
+  });
+
+  it("devuelve la unidad tal cual si no es conocida, o vacío si no hay", () => {
+    expect(unitLabel("caja")).toBe("caja");
+    expect(unitLabel(null)).toBe("");
   });
 });
