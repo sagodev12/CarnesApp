@@ -30,5 +30,13 @@ export function createAdminClient() {
     throw new Error("Falta SUPABASE_SERVICE_ROLE_KEY en el .env");
   }
 
+  // Una publishable/anon key aquí no falla al conectar, pero RLS bloquea
+  // las escrituras con un error confuso. Mejor detectarlo de entrada.
+  if (serviceRoleKey.startsWith("sb_publishable_")) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY tiene una publishable key: usa la secret key (sb_secret_...)",
+    );
+  }
+
   return createSupabaseClient(supabaseUrl, serviceRoleKey, noSession);
 }

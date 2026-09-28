@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:supabase": "node --env-file=.env scripts/check-supabase.mjs"
+    "check:supabase": "node --env-file=.env scripts/check-supabase.mts"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.30.0",

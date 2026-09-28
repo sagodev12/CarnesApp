@@ -1,5 +1,5 @@
 // Verifica la conexión con Supabase usando las variables del .env
-// Uso: node --env-file=.env scripts/check-supabase.mjs
+// Uso: node --env-file=.env scripts/check-supabase.mts
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
