@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { LogOut, ShieldAlert } from "lucide-react";
 
-import { requireAdminPage } from "@/lib/auth/admin";
+import AdminNav from "@/components/admin/AdminNav";
+import { getAdminStatus } from "@/lib/auth/admin";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const admin = await requireAdminPage("/admin/productos");
+  const admin = await getAdminStatus();
+
+  // Sin sesión, cada página redirige al login con su propia ruta de retorno
+  // (el layout no conoce la URL actual). No se renderiza nada del panel.
+  if (admin.status === "anonymous") return children;
 
   if (admin.status === "forbidden") {
     return (
@@ -40,13 +45,11 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen w-full flex-col">
       <header className="border-b border-line bg-charcoal text-cream">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center gap-6">
+        <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-4">
             <span className="font-display text-lg font-black">Panel admin</span>
-            <Link href="/admin/productos" className="text-sm text-cream/80 hover:text-cream">
-              Productos
-            </Link>
-          </nav>
+            <AdminNav />
+          </div>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-cream/70 sm:inline">{admin.email}</span>
             <a

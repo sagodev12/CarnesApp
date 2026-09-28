@@ -1,38 +1,95 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { assertAdmin } from "@/lib/auth/admin";
+import { formValues, type FormState } from "@/lib/forms";
 import { createAdminClient } from "@/lib/supabase/server";
-import { parseProductFormData } from "@/lib/validations/product.schema";
+import { removeImageByUrl, uploadPublicImage } from "@/lib/supabase/storage";
+import {
+  parseProductFormData,
+  type ProductInput,
+} from "@/lib/validations/product.schema";
 
-// Un archivo "use server" solo puede exportar funciones async.
-const PRODUCT_IMAGES_BUCKET = "products";
+const CHECKBOXES = ["active", "remove_image"];
 
-export type ProductFormState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  fieldErrors?: Partial<Record<string, string[]>>;
-  // Se devuelven los valores enviados para no perderlos si hay errores.
-  values?: Record<string, string | boolean>;
-};
+// Solo las columnas de la tabla (sin la imagen ni las opciones del formulario).
+function productRow(data: ProductInput) {
+  const { name, description, price, unit, category_id, order, active } = data;
+  return { name, description, price, unit, category_id, order, active };
+}
+
+function revalidateProducts() {
+  revalidatePath("/admin/productos");
+  revalidatePath("/", "layout");
+}
 
 export async function createProduct(
-  _prevState: ProductFormState,
+  _prevState: FormState,
   formData: FormData,
-): Promise<ProductFormState> {
+): Promise<FormState> {
   // Las Server Actions son endpoints públicos: se verifica el admin siempre.
   await assertAdmin();
 
-  const values = {
-    name: String(formData.get("name") ?? ""),
-    description: String(formData.get("description") ?? ""),
-    price: String(formData.get("price") ?? ""),
-    unit: String(formData.get("unit") ?? ""),
-    category_id: String(formData.get("category_id") ?? ""),
-    active: formData.get("active") === "on",
-  };
+  const values = formValues(formData, CHECKBOXES);
+  const parsed = parseProductFormData(formData);
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Revisa los campos marcados.",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      values,
+    };
+  }
+
+  const { image } = parsed.data;
+  const product = productRow(parsed.data);
+
+  let imageUrl: string | null = null;
+  if (image) {
+    try {
+      imageUrl = (await uploadPublicImage(image)).url;
+    } catch (error) {
+      return { status: "error", message: (error as Error).message, values };
+    }
+  }
+
+  const { error } = await createAdminClient()
+    .from("products")
+    .insert({ ...product, image_url: imageUrl });
+
+  if (error) {
+    // Evita dejar imágenes huérfanas si falla el insert.
+    await removeImageByUrl(imageUrl);
+
+    return {
+      status: "error",
+      message: `No se pudo guardar el producto: ${error.message}`,
+      values,
+    };
+  }
+
+  revalidateProducts();
+
+  return { status: "success", message: `"${product.name}" se agregó correctamente.` };
+}
+
+// Se usa con updateProduct.bind(null, id) desde el formulario de edición.
+export async function updateProduct(
+  id: string,
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await assertAdmin();
+
+  const values = formValues(formData, CHECKBOXES);
+
+  if (!z.uuid().safeParse(id).success) {
+    return { status: "error", message: "Producto inválido.", values };
+  }
 
   const parsed = parseProductFormData(formData);
 
@@ -45,52 +102,50 @@ export async function createProduct(
     };
   }
 
-  const { image, ...product } = parsed.data;
+  const { image, remove_image: removeImage } = parsed.data;
+  const product = productRow(parsed.data);
   const supabase = createAdminClient();
 
-  let imageUrl: string | null = null;
-  let imagePath: string | null = null;
+  const { data: current, error: readError } = await supabase
+    .from("products")
+    .select("image_url")
+    .eq("id", id)
+    .maybeSingle();
 
+  if (readError || !current) {
+    return { status: "error", message: "No se encontró el producto.", values };
+  }
+
+  // Imagen: nueva > quitar > mantener la actual.
+  let imageUrl: string | null = current.image_url;
   if (image) {
-    const extension = image.type.split("/")[1];
-    imagePath = `${crypto.randomUUID()}.${extension}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(PRODUCT_IMAGES_BUCKET)
-      .upload(imagePath, image, { contentType: image.type });
-
-    if (uploadError) {
-      return {
-        status: "error",
-        message: `No se pudo subir la imagen: ${uploadError.message}`,
-        values,
-      };
+    try {
+      imageUrl = (await uploadPublicImage(image)).url;
+    } catch (error) {
+      return { status: "error", message: (error as Error).message, values };
     }
-
-    imageUrl = supabase.storage
-      .from(PRODUCT_IMAGES_BUCKET)
-      .getPublicUrl(imagePath).data.publicUrl;
+  } else if (removeImage) {
+    imageUrl = null;
   }
 
   const { error } = await supabase
     .from("products")
-    .insert({ ...product, image_url: imageUrl });
+    .update({ ...product, image_url: imageUrl, updated_at: new Date().toISOString() })
+    .eq("id", id);
 
   if (error) {
-    // Evita dejar imágenes huérfanas si falla el insert.
-    if (imagePath) {
-      await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([imagePath]);
-    }
+    if (imageUrl !== current.image_url) await removeImageByUrl(imageUrl);
 
     return {
       status: "error",
-      message: `No se pudo guardar el producto: ${error.message}`,
+      message: `No se pudo actualizar el producto: ${error.message}`,
       values,
     };
   }
 
-  revalidatePath("/admin/productos");
-  revalidatePath("/");
+  // La imagen anterior solo se borra cuando el cambio ya quedó guardado.
+  if (imageUrl !== current.image_url) await removeImageByUrl(current.image_url);
 
-  return { status: "success", message: `"${product.name}" se agregó correctamente.` };
+  revalidateProducts();
+  redirect("/admin/productos");
 }

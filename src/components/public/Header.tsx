@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
-import BrandName from  "@/components/public/Brandname";
-
+import BrandName from "@/components/public/Brandname";
 
 const NAV_LINKS = [
   { href: "#productos", label: "Productos" },
@@ -12,14 +12,13 @@ const NAV_LINKS = [
   { href: "#contacto", label: "Contacto" },
 ];
 
-// TODO: mover a site_config (Supabase) cuando esté listo
-const WHATSAPP_NUMBER = "573123627031";
+type HeaderProps = {
+  businessName: string;
+  highlight?: string;
+  logoUrl: string | null;
+};
 
-// TODO: mover a site_config (Supabase) cuando esté listo
-const BUSINESS_NAME = "Surti Carnes del Fonce";
-const BUSINESS_HIGHLIGHT = "del Fonce";
-
-export default function Header() {
+export default function Header({ businessName, highlight, logoUrl }: HeaderProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -27,14 +26,22 @@ export default function Header() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="font-display text-2xl font-black tracking-tight text-charcoal"
+          className="flex min-w-0 items-center gap-2 font-display text-2xl font-black tracking-tight text-charcoal"
         >
-            <BrandName
-              name={BUSINESS_NAME}
-              highlight={BUSINESS_HIGHLIGHT}
-              className="font-display text-2xl font-black tracking-tight text-charcoal"
+          {logoUrl && (
+            <Image
+              src={logoUrl}
+              alt=""
+              width={40}
+              height={40}
+              className="size-10 shrink-0 rounded-md object-contain"
             />
-          
+          )}
+          <BrandName
+            name={businessName}
+            highlight={highlight}
+            className="truncate font-display text-xl font-black tracking-tight text-charcoal sm:text-2xl"
+          />
         </Link>
 
         {/* Nav desktop */}

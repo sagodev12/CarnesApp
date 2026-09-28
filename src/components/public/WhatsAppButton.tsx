@@ -1,7 +1,11 @@
 import { FaWhatsapp } from "react-icons/fa";
 
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
+
 type WhatsAppButtonProps = {
   phone: string;
+  /** Texto con el que se abre el chat */
+  message?: string | null;
   label?: string;
   floating?: boolean;
   className?: string;
@@ -9,20 +13,20 @@ type WhatsAppButtonProps = {
 };
 
 export default function WhatsAppButton({
-  phone = "573123627031",
+  phone,
+  message,
   label = "",
   floating = false,
   className = "",
   iconSize = 20,
 }: WhatsAppButtonProps) {
-  const cleanPhone = phone.replace(/\D/g, "");
   const hasLabel = Boolean(label?.trim());
 
   const isCircular = floating || !hasLabel;
 
   return (
     <a
-      href={`https://wa.me/${cleanPhone}`}
+      href={buildWhatsAppUrl(phone, message)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label || "Escribir por WhatsApp"}

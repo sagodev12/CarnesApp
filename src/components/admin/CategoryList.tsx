@@ -1,0 +1,96 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { Loader2, Tags, Trash2 } from "lucide-react";
+
+import { deleteCategory } from "@/app/admin/categorias/actions";
+import { FormMessage } from "@/components/ui/form";
+import type { FormState } from "@/lib/forms";
+import type { Category } from "@/types";
+
+type CategoryListProps = {
+  categories: Category[];
+  productCounts: Record<string, number>;
+};
+
+export default function CategoryList({ categories, productCounts }: CategoryListProps) {
+  // Id de la categoría que está pidiendo confirmación para eliminarse.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [result, setResult] = useState<FormState>({ status: "idle" });
+  const [pending, startTransition] = useTransition();
+
+  function handleDelete(id: string) {
+    startTransition(async () => {
+      setResult(await deleteCategory(id));
+      setConfirmingId(null);
+    });
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line px-6 py-16 text-center">
+        <Tags size={40} className="text-charcoal/30" />
+        <p className="mt-3 font-medium">Aún no hay categorías</p>
+        <p className="mt-1 text-sm text-charcoal/60">
+          Crea categorías como &quot;Res&quot; o &quot;Cerdo&quot; para filtrar la galería.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <FormMessage state={result} />
+
+      <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-white/60">
+        {categories.map((category) => {
+          const count = productCounts[category.id] ?? 0;
+          const confirming = confirmingId === category.id;
+
+          return (
+            <li key={category.id} className="flex items-center justify-between gap-4 px-4 py-3">
+              <div>
+                <p className="font-medium">{category.name}</p>
+                <p className="text-xs text-charcoal/60">
+                  Orden {category.order} · {count} {count === 1 ? "producto" : "productos"}
+                </p>
+              </div>
+
+              {confirming ? (
+                <div className="flex items-center gap-2">
+                  <span className="hidden text-sm text-charcoal/70 sm:inline">¿Eliminar?</span>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(null)}
+                    disabled={pending}
+                    className="rounded-md border border-line px-3 py-1.5 text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(category.id)}
+                    disabled={pending}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-brick px-3 py-1.5 text-sm font-medium text-cream disabled:opacity-60"
+                  >
+                    {pending && <Loader2 size={14} className="animate-spin" />}
+                    Sí, eliminar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingId(category.id)}
+                  aria-label={`Eliminar ${category.name}`}
+                  className="rounded-md p-2 text-charcoal/60 transition-colors hover:bg-brick/10 hover:text-brick"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}

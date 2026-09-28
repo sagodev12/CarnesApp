@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
-import ProductForm from "@/components/admin/ProductForm";
 import ProductList from "@/components/admin/ProductList";
 import { requireAdminPage } from "@/lib/auth/admin";
-import { getAllProducts, getCategories } from "@/lib/products/queries";
+import { getAllProducts } from "@/lib/products/queries";
 
 export const metadata: Metadata = {
   title: "Productos · Panel admin",
@@ -16,27 +17,29 @@ export default async function AdminProductsPage() {
   const admin = await requireAdminPage("/admin/productos");
   if (admin.status !== "admin") return null;
 
-  const [products, categories] = await Promise.all([
-    getAllProducts(),
-    getCategories(),
-  ]);
+  const products = await getAllProducts();
+  const hidden = products.filter((product) => !product.active).length;
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <h1 className="font-display text-3xl font-black">Productos</h1>
-        <p className="mt-1 text-charcoal/70">
-          {products.length} {products.length === 1 ? "producto" : "productos"} en
-          el catálogo.
-        </p>
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-black">Productos</h1>
+          <p className="mt-1 text-charcoal/70">
+            {products.length} {products.length === 1 ? "producto" : "productos"}
+            {hidden > 0 && ` · ${hidden} ${hidden === 1 ? "oculto" : "ocultos"}`}
+          </p>
+        </div>
+        <Link
+          href="/admin/productos/nuevo"
+          className="inline-flex items-center gap-2 rounded-md bg-brick px-4 py-2.5 text-sm font-semibold text-cream transition-colors hover:bg-brick-dark"
+        >
+          <Plus size={16} />
+          Nuevo producto
+        </Link>
       </header>
 
-      <div className="grid items-start gap-8 lg:grid-cols-[22rem_1fr]">
-        <div className="lg:sticky lg:top-6">
-          <ProductForm categories={categories} />
-        </div>
-        <ProductList products={products} />
-      </div>
+      <ProductList products={products} />
     </section>
   );
 }
