@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Percent } from "lucide-react";
 
 import {
   Field,
@@ -13,6 +14,7 @@ import {
   pick,
 } from "@/components/ui/form";
 import { initialFormState, type FormState } from "@/lib/forms";
+import { toBusinessDate } from "@/lib/promotions";
 import {
   ACCEPTED_IMAGE_TYPES,
   PRODUCT_UNITS,
@@ -36,7 +38,7 @@ export default function ProductForm({ categories, action, product }: ProductForm
   return (
     <form
       action={formAction}
-      className="space-y-5 rounded-xl border border-line bg-white/60 p-5 sm:p-6"
+      className="space-y-5 rounded-2xl border border-line bg-white p-5 sm:p-6"
     >
       <FormMessage state={state} />
 
@@ -98,6 +100,78 @@ export default function ProductForm({ categories, action, product }: ProductForm
           </select>
         </Field>
       </div>
+
+      <fieldset className="rounded-xl border border-brick/25 bg-brick/5 p-4 sm:p-5">
+        <legend className="flex items-center gap-1.5 px-1 text-sm font-semibold text-brick">
+          <Percent size={14} />
+          Promoción
+          <span className="font-normal text-charcoal/50">(opcional)</span>
+        </legend>
+        <p className="mb-4 text-xs text-charcoal/60">
+          Con un precio promo el producto sale destacado en &quot;Ofertas&quot;. Déjalo vacío
+          para quitar la promoción.
+        </p>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <Field label="Precio promo (COP)" name="sale_price" errors={errors.sale_price}>
+            <input
+              id="sale_price"
+              name="sale_price"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              placeholder="28000"
+              defaultValue={pick(
+                values,
+                "sale_price",
+                product?.sale_price != null ? String(product.sale_price) : "",
+              )}
+              aria-invalid={Boolean(errors.sale_price)}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field
+            label="Desde"
+            name="sale_starts_at"
+            errors={errors.sale_starts_at}
+            hint="Vacío: desde ya."
+          >
+            <input
+              id="sale_starts_at"
+              name="sale_starts_at"
+              type="date"
+              defaultValue={pick(
+                values,
+                "sale_starts_at",
+                toBusinessDate(product?.sale_starts_at ?? null),
+              )}
+              aria-invalid={Boolean(errors.sale_starts_at)}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field
+            label="Hasta (incluido)"
+            name="sale_ends_at"
+            errors={errors.sale_ends_at}
+            hint="Vacío: sin fecha límite."
+          >
+            <input
+              id="sale_ends_at"
+              name="sale_ends_at"
+              type="date"
+              defaultValue={pick(
+                values,
+                "sale_ends_at",
+                toBusinessDate(product?.sale_ends_at ?? null, { end: true }),
+              )}
+              aria-invalid={Boolean(errors.sale_ends_at)}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+      </fieldset>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Categoría" name="category_id" errors={errors.category_id} optional>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+import PageHeader from "@/components/admin/PageHeader";
 import ProductForm from "@/components/admin/ProductForm";
 import { requireAdminPage } from "@/lib/auth/admin";
 import { getCategories, getProductById } from "@/lib/products/queries";
@@ -25,9 +26,12 @@ export default async function EditProductPage(props: PageProps<"/admin/productos
   if (!product) notFound();
 
   return (
-    <section className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
-      <p className="text-sm text-charcoal/60">Editar producto</p>
-      <h1 className="mb-6 font-display text-3xl font-black">{product.name}</h1>
+    <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        title={product.name}
+        description="Editar producto"
+        back={{ href: "/admin/productos", label: "Productos" }}
+      />
       <ProductForm
         categories={categories}
         action={updateProduct.bind(null, product.id)}

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { LogOut, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 
-import AdminNav from "@/components/admin/AdminNav";
+import AdminShell from "@/components/admin/AdminShell";
 import { getAdminStatus } from "@/lib/auth/admin";
+import { getSiteConfig } from "@/lib/site-config/queries";
 
 export default async function AdminLayout({
   children,
@@ -42,27 +43,11 @@ export default async function AdminLayout({
     );
   }
 
+  const config = await getSiteConfig();
+
   return (
-    <div className="flex min-h-screen w-full flex-col">
-      <header className="border-b border-line bg-charcoal text-cream">
-        <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="font-display text-lg font-black">Panel admin</span>
-            <AdminNav />
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-cream/70 sm:inline">{admin.email}</span>
-            <a
-              href="/auth/logout"
-              className="inline-flex items-center gap-1.5 text-sm text-cream/80 hover:text-cream"
-            >
-              <LogOut size={16} />
-              Salir
-            </a>
-          </div>
-        </div>
-      </header>
-      <main className="flex-1">{children}</main>
-    </div>
+    <AdminShell businessName={config.business_name} email={admin.email}>
+      {children}
+    </AdminShell>
   );
 }

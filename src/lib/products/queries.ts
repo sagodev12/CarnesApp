@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { Category, ProductWithCategory } from "@/types";
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, unit, image_url, category_id, active, order, created_at, updated_at, category:categories(id, name)";
+  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, order, created_at, updated_at, category:categories(id, name)";
 
 // Consultas del panel admin (incluyen productos inactivos, usan service_role).
 // Quien las llame debe haber verificado antes que el usuario es admin.
@@ -37,6 +37,35 @@ export async function getProductCounts() {
   if (all.error) throw new Error(`No se pudieron contar los productos: ${all.error.message}`);
 
   return { total: all.count ?? 0, hidden: hidden.count ?? 0 };
+}
+
+// Datos del inicio del panel: conteos (sin traer filas) y productos con
+// precio promo; la vigencia de cada promoción se calcula al mostrarla.
+export async function getDashboardData() {
+  const supabase = createAdminClient();
+  const [counts, categories, withoutImage, promotions] = await Promise.all([
+    getProductCounts(),
+    supabase.from("categories").select("id", { count: "exact", head: true }),
+    supabase.from("products").select("id", { count: "exact", head: true }).is("image_url", null),
+    supabase
+      .from("products")
+      .select(PRODUCT_COLUMNS)
+      .not("sale_price", "is", null)
+      .order("order")
+      .order("name")
+      .overrideTypes<ProductWithCategory[], { merge: false }>(),
+  ]);
+
+  if (promotions.error) {
+    throw new Error(`No se pudieron cargar las promociones: ${promotions.error.message}`);
+  }
+
+  return {
+    ...counts,
+    categories: categories.count ?? 0,
+    withoutImage: withoutImage.count ?? 0,
+    promotions: promotions.data,
+  };
 }
 
 export async function getProductById(id: string): Promise<ProductWithCategory | null> {

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
+import PageHeader from "@/components/admin/PageHeader";
 import ProductList from "@/components/admin/ProductList";
 import Pagination from "@/components/ui/Pagination";
 import { ProductGridSkeleton } from "@/components/ui/Skeleton";
@@ -28,23 +29,25 @@ export default async function AdminProductsPage(props: PageProps<"/admin/product
   const { total, hidden } = await getProductCounts();
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-black">Productos</h1>
-          <p className="mt-1 text-charcoal/70">
+    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        title="Productos"
+        description={
+          <>
             {total} {total === 1 ? "producto" : "productos"}
             {hidden > 0 && ` · ${hidden} ${hidden === 1 ? "oculto" : "ocultos"}`}
-          </p>
-        </div>
-        <Link
-          href="/admin/productos/nuevo"
-          className="inline-flex items-center gap-2 rounded-md bg-brick px-4 py-2.5 text-sm font-semibold text-cream transition-colors hover:bg-brick-dark"
-        >
-          <Plus size={16} />
-          Nuevo producto
-        </Link>
-      </header>
+          </>
+        }
+        actions={
+          <Link
+            href="/admin/productos/nuevo"
+            className="inline-flex items-center gap-2 rounded-lg bg-brick px-4 py-2.5 text-sm font-semibold text-cream transition-colors hover:bg-brick-dark"
+          >
+            <Plus size={16} />
+            Nuevo producto
+          </Link>
+        }
+      />
 
       {/* key: al cambiar de página vuelve a mostrarse el skeleton. */}
       <Suspense
@@ -62,7 +65,7 @@ async function ProductsSection({ page }: { page: number }) {
 
   return (
     <div className="space-y-8">
-      <ProductList products={result.items} />
+      <ProductList products={result.items} now={new Date()} />
       <Pagination page={result.page} totalPages={result.totalPages} hrefFor={hrefFor} />
     </div>
   );

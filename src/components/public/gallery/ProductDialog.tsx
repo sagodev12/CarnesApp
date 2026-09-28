@@ -4,8 +4,8 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Beef, Plus, X } from "lucide-react";
 
-import { formatPrice } from "@/lib/format";
-import { unitLabel } from "@/lib/validations/product.schema";
+import { PriceTag, SaleBadge } from "@/components/ui/PriceTag";
+import { isOnSale } from "@/lib/promotions";
 import type { ProductWithCategory } from "@/types";
 
 import QuantityStepper from "./QuantityStepper";
@@ -14,6 +14,7 @@ type ProductDialogProps = {
   product: ProductWithCategory | null;
   quantity: number | undefined;
   canOrder: boolean;
+  now: Date;
   onAdd: (product: ProductWithCategory) => void;
   onDecrement: (product: ProductWithCategory) => void;
   onClose: () => void;
@@ -26,6 +27,7 @@ export default function ProductDialog({
   product,
   quantity,
   canOrder,
+  now,
   onAdd,
   onDecrement,
   onClose,
@@ -65,6 +67,13 @@ export default function ProductDialog({
                 <Beef size={64} />
               </div>
             )}
+            {isOnSale(product, now) && (
+              <SaleBadge
+                price={product.price}
+                salePrice={product.sale_price as number}
+                className="absolute left-4 top-4 px-3 py-1 text-sm"
+              />
+            )}
           </div>
 
           <div className="flex min-h-0 flex-col">
@@ -96,13 +105,8 @@ export default function ProductDialog({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
-              <p className="text-xl font-bold text-brick">
-                {formatPrice(product.price)}
-                {product.unit && (
-                  <span className="text-sm font-normal text-charcoal/60"> / {unitLabel(product.unit)}</span>
-                )}
-              </p>
+            <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line px-5 py-4">
+              <PriceTag product={product} now={now} size="lg" />
 
               {canOrder &&
                 (quantity !== undefined ? (

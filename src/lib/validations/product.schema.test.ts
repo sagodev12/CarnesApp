@@ -100,6 +100,85 @@ describe("parseProductFormData", () => {
   });
 });
 
+describe("parseProductFormData · promoción", () => {
+  it("sin precio promo guarda la promoción vacía", () => {
+    const result = parseProductFormData(productForm());
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      sale_price: null,
+      sale_starts_at: null,
+      sale_ends_at: null,
+    });
+  });
+
+  it("acepta precio promo sin fechas", () => {
+    const result = parseProductFormData(productForm({ sale_price: "28000" }));
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ sale_price: 28000, sale_starts_at: null, sale_ends_at: null });
+  });
+
+  it("convierte las fechas a hora de Colombia (fin inclusivo)", () => {
+    const result = parseProductFormData(
+      productForm({
+        sale_price: "28000",
+        sale_starts_at: "2026-10-01",
+        sale_ends_at: "2026-10-31",
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      sale_starts_at: "2026-10-01T05:00:00.000Z",
+      sale_ends_at: "2026-11-01T05:00:00.000Z",
+    });
+  });
+
+  it("acepta una promoción de un solo día", () => {
+    const result = parseProductFormData(
+      productForm({ sale_price: "28000", sale_starts_at: "2026-10-01", sale_ends_at: "2026-10-01" }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza un precio promo igual o mayor al normal", () => {
+    const result = parseProductFormData(productForm({ sale_price: "32000" }));
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["sale_price"]);
+  });
+
+  it("rechaza un precio promo no positivo", () => {
+    expect(parseProductFormData(productForm({ sale_price: "0" })).success).toBe(false);
+  });
+
+  it("rechaza un fin anterior al inicio", () => {
+    const result = parseProductFormData(
+      productForm({ sale_price: "28000", sale_starts_at: "2026-10-10", sale_ends_at: "2026-10-01" }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["sale_ends_at"]);
+  });
+
+  it("rechaza fechas con formato inválido", () => {
+    expect(
+      parseProductFormData(productForm({ sale_price: "28000", sale_starts_at: "01/10/2026" })).success,
+    ).toBe(false);
+  });
+
+  it("ignora las fechas si no hay precio promo", () => {
+    const result = parseProductFormData(
+      productForm({ sale_starts_at: "2026-10-01", sale_ends_at: "2026-10-31" }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ sale_price: null, sale_starts_at: null, sale_ends_at: null });
+  });
+});
+
 describe("unitLabel", () => {
   it("traduce la unidad a texto en minúscula", () => {
     expect(unitLabel("kg")).toBe("kilo");

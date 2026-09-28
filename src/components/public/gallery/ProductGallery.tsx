@@ -1,22 +1,28 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2, PackageOpen, RotateCw } from "lucide-react";
+import { Flame, Loader2, PackageOpen, Percent, RotateCw } from "lucide-react";
 
 import { ProductCardSkeleton, ProductGridSkeleton } from "@/components/ui/Skeleton";
 import type { Paginated } from "@/lib/pagination";
 import { productsApiUrl } from "@/lib/products/query-params";
+import { isOnSale, toOrderProduct } from "@/lib/promotions";
 import type { Category, ProductWithCategory } from "@/types";
 
 import OrderBar from "./OrderBar";
 import ProductCard from "./ProductCard";
 import ProductDialog from "./ProductDialog";
+import { useNow } from "./useNow";
 import { useOrder } from "./useOrder";
 
 type ProductGalleryProps = {
   // Primera página sin filtro, renderizada en el servidor.
   initialPage: Paginated<ProductWithCategory>;
   categories: Category[];
+  // Productos con precio promo (se filtran por vigencia al mostrarlos).
+  offers: ProductWithCategory[];
+  // Hora del render en el servidor (ms), para hidratar sin desajustes.
+  renderedAt: number;
   phone: string;
   greeting: string | null;
 };
@@ -26,9 +32,14 @@ type Status = "idle" | "filtering" | "loading-more" | "error";
 // Cuántas tarjetas fantasma mostrar al cargar más (no toda la página).
 const MORE_SKELETONS = 3;
 
+// Filtro "Ofertas": se muestra la lista de ofertas ya cargada, sin paginar.
+const OFFERS = "ofertas";
+
 export default function ProductGallery({
   initialPage,
   categories,
+  offers,
+  renderedAt,
   phone,
   greeting,
 }: ProductGalleryProps) {
@@ -44,6 +55,11 @@ export default function ProductGallery({
 
   const { order, lines, total, add, decrement, remove, clear } = useOrder();
   const canOrder = Boolean(phone);
+
+  const now = useNow(renderedAt);
+  const liveOffers = offers.filter((product) => isOnSale(product, now));
+  const showingOffers = categoryId === OFFERS;
+  const shownItems = showingOffers ? liveOffers : items;
 
   async function load(page: number, nextCategoryId: string | null) {
     const id = ++requestId.current;
@@ -67,6 +83,13 @@ export default function ProductGallery({
   function selectCategory(nextCategoryId: string | null) {
     if (nextCategoryId === categoryId && status !== "error") return;
     setCategoryId(nextCategoryId);
+
+    // Las ofertas ya están cargadas: se cancela cualquier pedido en curso.
+    if (nextCategoryId === OFFERS) {
+      requestId.current++;
+      setStatus("idle");
+      return;
+    }
 
     // "Todos" ya viene del servidor: no hace falta pedirlo otra vez.
     if (nextCategoryId === null) {
@@ -94,25 +117,87 @@ export default function ProductGallery({
   }
 
   const remaining = result.total - items.length;
+  const hasMore = !showingOffers && result.hasMore;
+  const filters = [
+    { id: null, name: "Todos" },
+    ...(liveOffers.length > 0 ? [{ id: OFFERS, name: "Ofertas" }] : []),
+    ...categories,
+  ];
+
+  function renderCard(product: ProductWithCategory) {
+    return (
+      <ProductCard
+        product={product}
+        quantity={order[product.id]?.quantity}
+        canOrder={canOrder}
+        now={now}
+        onAdd={() => add(toOrderProduct(product, now))}
+        onDecrement={() => decrement(toOrderProduct(product, now))}
+        onOpen={() => setDetail(product)}
+      />
+    );
+  }
 
   return (
     <>
-      {categories.length > 0 && (
+      {liveOffers.length > 0 && !showingOffers && (
+        <section
+          aria-labelledby="offers-title"
+          className="-mx-4 mb-10 bg-charcoal px-4 py-6 text-cream sm:mx-0 sm:rounded-3xl sm:px-6"
+        >
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-mustard">
+                <Flame size={14} />
+                Por tiempo limitado
+              </p>
+              <h3 id="offers-title" className="font-display text-2xl font-black sm:text-3xl">
+                Ofertas
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => selectCategory(OFFERS)}
+              className="rounded-full border border-cream/30 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-cream hover:text-charcoal"
+            >
+              Ver todas ({liveOffers.length})
+            </button>
+          </div>
+          <ul className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 text-charcoal sm:-mx-6 sm:px-6">
+            {liveOffers.map((product) => (
+              <li
+                key={product.id}
+                className="w-[82%] shrink-0 snap-start sm:w-[calc(50%-0.5rem)] lg:w-[calc((100%-2rem)/3)]"
+              >
+                {renderCard(product)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {filters.length > 1 && (
         <div role="group" aria-label="Filtrar por categoría" className="mb-8 flex flex-wrap gap-2">
-          {[{ id: null, name: "Todos" }, ...categories].map((category) => {
+          {filters.map((category) => {
             const active = categoryId === category.id;
+            const isOffers = category.id === OFFERS;
             return (
               <button
                 key={category.id ?? "all"}
                 type="button"
                 onClick={() => selectCategory(category.id)}
                 aria-pressed={active}
-                className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
                   active
-                    ? "border-charcoal bg-charcoal text-cream"
-                    : "border-line bg-white text-charcoal hover:border-charcoal/40"
+                    ? isOffers
+                      ? "border-brick bg-brick text-cream"
+                      : "border-charcoal bg-charcoal text-cream"
+                    : isOffers
+                      ? "border-brick/40 bg-white text-brick hover:border-brick"
+                      : "border-line bg-white text-charcoal hover:border-charcoal/40"
                 }`}
               >
+                {isOffers && <Percent size={14} />}
                 {category.name}
               </button>
             );
@@ -122,23 +207,16 @@ export default function ProductGallery({
 
       {status === "filtering" ? (
         <ProductGridSkeleton count={6} />
-      ) : items.length === 0 && status !== "error" ? (
+      ) : shownItems.length === 0 && status !== "error" ? (
         <p className="rounded-2xl border border-dashed border-line px-6 py-12 text-center text-charcoal/70">
-          No hay productos en esta categoría por ahora.
+          {showingOffers
+            ? "Las ofertas terminaron. ¡Vuelve pronto!"
+            : "No hay productos en esta categoría por ahora."}
         </p>
       ) : (
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-busy={status === "loading-more"}>
-          {items.map((product) => (
-            <li key={product.id}>
-              <ProductCard
-                product={product}
-                quantity={order[product.id]?.quantity}
-                canOrder={canOrder}
-                onAdd={() => add(product)}
-                onDecrement={() => decrement(product)}
-                onOpen={() => setDetail(product)}
-              />
-            </li>
+          {shownItems.map((product) => (
+            <li key={product.id}>{renderCard(product)}</li>
           ))}
           {status === "loading-more" &&
             Array.from({ length: Math.min(remaining, MORE_SKELETONS) }, (_, index) => (
@@ -164,7 +242,7 @@ export default function ProductGallery({
           </>
         ) : (
           status !== "filtering" &&
-          result.hasMore && (
+          hasMore && (
             <>
               <button
                 type="button"
@@ -187,8 +265,9 @@ export default function ProductGallery({
         product={detail}
         quantity={detail ? order[detail.id]?.quantity : undefined}
         canOrder={canOrder}
-        onAdd={add}
-        onDecrement={decrement}
+        now={now}
+        onAdd={(product) => add(toOrderProduct(product, now))}
+        onDecrement={(product) => decrement(toOrderProduct(product, now))}
         onClose={() => setDetail(null)}
       />
 

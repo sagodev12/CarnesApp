@@ -10,6 +10,10 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  // Promoción: precio rebajado con vigencia opcional (ver lib/promotions).
+  sale_price: number | null;
+  sale_starts_at: string | null;
+  sale_ends_at: string | null;
   unit: string | null;
   image_url: string | null;
   category_id: string | null;

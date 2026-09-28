@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { Beef, Plus } from "lucide-react";
 
-import { formatPrice } from "@/lib/format";
-import { unitLabel } from "@/lib/validations/product.schema";
+import { PriceTag, SaleBadge } from "@/components/ui/PriceTag";
+import { isOnSale } from "@/lib/promotions";
 import type { ProductWithCategory } from "@/types";
 
 import QuantityStepper from "./QuantityStepper";
@@ -11,6 +11,8 @@ type ProductCardProps = {
   product: ProductWithCategory;
   quantity: number | undefined;
   canOrder: boolean;
+  // Hora con la que se decide si la promoción está vigente.
+  now: Date;
   onAdd: () => void;
   onDecrement: () => void;
   // Abre el detalle con la imagen completa y la descripción entera.
@@ -21,11 +23,13 @@ export default function ProductCard({
   product,
   quantity,
   canOrder,
+  now,
   onAdd,
   onDecrement,
   onOpen,
 }: ProductCardProps) {
   const selected = quantity !== undefined;
+  const onSale = isOnSale(product, now);
 
   return (
     <article
@@ -57,6 +61,13 @@ export default function ProductCard({
             {product.category.name}
           </span>
         )}
+        {onSale && (
+          <SaleBadge
+            price={product.price}
+            salePrice={product.sale_price as number}
+            className="absolute right-3 top-3 px-3 py-1 text-sm"
+          />
+        )}
       </button>
 
       <div className="flex flex-1 flex-col p-5">
@@ -78,13 +89,8 @@ export default function ProductCard({
           </>
         )}
 
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
-          <p className="text-lg font-bold text-brick">
-            {formatPrice(product.price)}
-            {product.unit && (
-              <span className="text-sm font-normal text-charcoal/60"> / {unitLabel(product.unit)}</span>
-            )}
-          </p>
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-5">
+          <PriceTag product={product} now={now} />
 
           {canOrder &&
             (selected ? (

@@ -17,7 +17,7 @@ export const PRODUCTS_TAG = "products";
 const CACHE_SECONDS = 3600;
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, unit, image_url, category_id, active, order, created_at, updated_at, category:categories(id, name)";
+  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, order, created_at, updated_at, category:categories(id, name)";
 
 type PageQuery = { page: number; categoryId: string | null };
 
@@ -63,6 +63,31 @@ export const getActiveProductsByIds = unstable_cache(
     return data;
   },
   ["public-products-by-ids"],
+  { tags: [PRODUCTS_TAG], revalidate: CACHE_SECONDS },
+);
+
+// Productos con precio promo, sin filtrar por fechas: la vigencia se evalúa
+// al mostrarlos (isOnSale), así la caché no deja ofertas vencidas en pantalla.
+const MAX_OFFERS = 24;
+
+export const getActiveSaleProducts = unstable_cache(
+  async (): Promise<ProductWithCategory[]> => {
+    const { data, error } = await createClient()
+      .from("products")
+      .select(PRODUCT_COLUMNS)
+      .eq("active", true)
+      .not("sale_price", "is", null)
+      .order("order")
+      .order("created_at", { ascending: false })
+      .order("id")
+      .limit(MAX_OFFERS)
+      .overrideTypes<ProductWithCategory[], { merge: false }>();
+
+    if (error) throw new Error(`No se pudieron cargar las ofertas: ${error.message}`);
+
+    return data;
+  },
+  ["public-sale-products", `max-${MAX_OFFERS}`],
   { tags: [PRODUCTS_TAG], revalidate: CACHE_SECONDS },
 );
 

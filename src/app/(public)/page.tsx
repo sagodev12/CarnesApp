@@ -2,14 +2,18 @@ import Image from "next/image";
 
 import ProductGallery from "@/components/public/gallery/ProductGallery";
 import { PUBLIC_PAGE_SIZE, paginated } from "@/lib/pagination";
-import { getActiveProductsPage, getPublicCategories } from "@/lib/products/public-queries";
+import {
+  getActiveProductsPage,
+  getActiveSaleProducts,
+  getPublicCategories,
+} from "@/lib/products/public-queries";
 import { getSiteConfig } from "@/lib/site-config/queries";
 
 // Respaldo: el panel revalida esta página al guardar (revalidatePath).
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [config, firstPage, categories] = await Promise.all([
+  const [config, firstPage, categories, offers] = await Promise.all([
     getSiteConfig(),
     // Si falla, la landing se muestra igual (sin productos) en vez de romperse.
     getActiveProductsPage({ page: 1, categoryId: null }).catch((error) => {
@@ -17,8 +21,16 @@ export default async function Home() {
       return paginated([], 0, 1, PUBLIC_PAGE_SIZE);
     }),
     getPublicCategories(),
+    // Las ofertas son un extra: si fallan, la galería se muestra sin ellas.
+    getActiveSaleProducts().catch((error) => {
+      console.error(error);
+      return [];
+    }),
   ]);
   const hasProducts = firstPage.total > 0;
+  // Hora del render (Server Component: se calcula una vez por render). La
+  // galería la usa al hidratar para decidir qué ofertas están vigentes.
+  const renderedAt = new Date().getTime();
 
   return (
     <>
@@ -78,6 +90,8 @@ export default async function Home() {
         <ProductGallery
           initialPage={firstPage}
           categories={categories}
+          offers={offers}
+          renderedAt={renderedAt}
           phone={config.phone_whatsapp}
           greeting={config.whatsapp_message}
         />

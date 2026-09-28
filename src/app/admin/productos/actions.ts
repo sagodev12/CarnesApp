@@ -17,8 +17,30 @@ const CHECKBOXES = ["active", "remove_image"];
 
 // Solo las columnas de la tabla (sin la imagen ni las opciones del formulario).
 function productRow(data: ProductInput) {
-  const { name, description, price, unit, category_id, order, active } = data;
-  return { name, description, price, unit, category_id, order, active };
+  const {
+    name,
+    description,
+    price,
+    sale_price,
+    sale_starts_at,
+    sale_ends_at,
+    unit,
+    category_id,
+    order,
+    active,
+  } = data;
+  return {
+    name,
+    description,
+    price,
+    sale_price,
+    sale_starts_at,
+    sale_ends_at,
+    unit,
+    category_id,
+    order,
+    active,
+  };
 }
 
 function revalidateProducts() {

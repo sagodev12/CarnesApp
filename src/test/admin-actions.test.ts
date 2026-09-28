@@ -130,6 +130,42 @@ describe("createProduct", () => {
     expect(calls[0]).toMatchObject({ table: "products", op: "insert", payload: { description: "" } });
   });
 
+  it("sin promoción guarda las columnas de promoción en null", async () => {
+    await createProduct(idle, validProduct);
+
+    expect(calls[0]).toMatchObject({
+      payload: { sale_price: null, sale_starts_at: null, sale_ends_at: null },
+    });
+  });
+
+  it("guarda el precio promo y su vigencia", async () => {
+    const state = await createProduct(
+      idle,
+      form({
+        name: "Chata",
+        description: "",
+        price: "32000",
+        sale_price: "28000",
+        sale_starts_at: "2026-10-01",
+        sale_ends_at: "2026-10-31",
+        unit: "kg",
+        order: "0",
+        active: "on",
+      }),
+    );
+
+    expect(state.status).toBe("success");
+    expect(calls[0]).toMatchObject({
+      table: "products",
+      op: "insert",
+      payload: {
+        sale_price: 28000,
+        sale_starts_at: "2026-10-01T05:00:00.000Z",
+        sale_ends_at: "2026-11-01T05:00:00.000Z",
+      },
+    });
+  });
+
   it("invalida la caché de productos de la galería de inmediato", async () => {
     await createProduct(idle, validProduct);
 

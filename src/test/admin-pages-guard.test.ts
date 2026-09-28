@@ -8,9 +8,6 @@ import { describe, expect, it } from "vitest";
 // panel debe llamar a requireAdminPage: este test lo garantiza.
 const ADMIN_DIR = join(process.cwd(), "src/app/admin");
 
-// Páginas que no muestran datos (solo redirigen).
-const EXEMPT = new Set(["page.tsx"]);
-
 function findPages(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -20,12 +17,11 @@ function findPages(dir: string): string[] {
 }
 
 describe("páginas del panel admin", () => {
-  const pages = findPages(ADMIN_DIR)
-    .map((path) => ({ path, name: relative(ADMIN_DIR, path) }))
-    .filter(({ name }) => !EXEMPT.has(name));
+  const pages = findPages(ADMIN_DIR).map((path) => ({ path, name: relative(ADMIN_DIR, path) }));
 
-  it("encuentra las páginas del panel", () => {
-    expect(pages.length).toBeGreaterThanOrEqual(5);
+  it("encuentra las páginas del panel (incluido el dashboard)", () => {
+    expect(pages.map(({ name }) => name)).toContain("page.tsx");
+    expect(pages.length).toBeGreaterThanOrEqual(6);
   });
 
   for (const { path, name } of pages) {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import PageHeader from "@/components/admin/PageHeader";
 import SiteConfigForm from "@/components/admin/SiteConfigForm";
 import { requireAdminPage } from "@/lib/auth/admin";
 import { getSiteConfig } from "@/lib/site-config/queries";
@@ -16,13 +17,11 @@ export default async function AdminConfigPage() {
   const config = await getSiteConfig();
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <h1 className="font-display text-3xl font-black">Configuración</h1>
-        <p className="mt-1 text-charcoal/70">
-          Personaliza la página pública. Los cambios se ven al guardar.
-        </p>
-      </header>
+    <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        title="Configuración"
+        description="Personaliza la página pública. Los cambios se ven al guardar."
+      />
 
       {config.id ? (
         <SiteConfigForm config={config} />

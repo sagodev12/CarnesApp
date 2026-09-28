@@ -14,6 +14,7 @@ import {
   type OrderProduct,
 } from "@/lib/order";
 import { MAX_IDS } from "@/lib/products/query-params";
+import { toOrderProduct, type SaleFields } from "@/lib/promotions";
 
 const STORAGE_KEY = "carnesapp:order";
 const CHANGE_EVENT = "carnesapp:order-change";
@@ -65,9 +66,12 @@ async function validateStoredOrder() {
     const response = await fetch(`/api/products?ids=${ids.join(",")}`);
     if (!response.ok) return; // Sin conexión o error: se conserva lo guardado.
 
-    const { items } = (await response.json()) as { items: OrderProduct[] };
+    const { items } = (await response.json()) as { items: (OrderProduct & SaleFields)[] };
+    // Precio vigente: aplica promociones nuevas y quita las que terminaron.
+    const now = new Date();
+    const fresh = items.map((item) => toOrderProduct(item, now));
     // Se relee por si el cliente cambió el pedido mientras llegaba la respuesta.
-    writeOrder(syncOrder(parseStoredOrder(readRaw()), items, { dropMissing: true }));
+    writeOrder(syncOrder(parseStoredOrder(readRaw()), fresh, { dropMissing: true }));
   } catch {
     // Se conserva lo guardado.
   }
