@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Tags, Trash2 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { ImageOff, Loader2, Pencil, Tags, Trash2 } from "lucide-react";
 
 import { deleteCategory } from "@/app/admin/categorias/actions";
 import { FormMessage } from "@/components/ui/form";
@@ -48,11 +50,21 @@ export default function CategoryList({ categories }: CategoryListProps) {
 
           return (
             <li key={category.id} className="flex items-center justify-between gap-4 px-4 py-3">
-              <div>
-                <p className="font-medium">{category.name}</p>
-                <p className="text-xs text-charcoal/60">
-                  Orden {category.order} · {count} {count === 1 ? "producto" : "productos"}
-                </p>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="relative flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-charcoal/5 text-charcoal/30">
+                  {category.image_url ? (
+                    <Image src={category.image_url} alt="" fill sizes="64px" className="object-cover" />
+                  ) : (
+                    <ImageOff size={18} aria-label="Sin imagen" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{category.name}</p>
+                  <p className="text-xs text-charcoal/60">
+                    Orden {category.order} · {count} {count === 1 ? "producto" : "productos"}
+                    {!category.description && " · sin descripción"}
+                  </p>
+                </div>
               </div>
 
               {confirming ? (
@@ -77,14 +89,23 @@ export default function CategoryList({ categories }: CategoryListProps) {
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmingId(category.id)}
-                  aria-label={`Eliminar ${category.name}`}
-                  className="rounded-md p-2 text-charcoal/60 transition-colors hover:bg-brick/10 hover:text-brick"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Link
+                    href={`/admin/categorias/${category.id}`}
+                    aria-label={`Editar ${category.name}`}
+                    className="rounded-md p-2 text-charcoal/60 transition-colors hover:bg-charcoal/5 hover:text-charcoal"
+                  >
+                    <Pencil size={18} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(category.id)}
+                    aria-label={`Eliminar ${category.name}`}
+                    className="rounded-md p-2 text-charcoal/60 transition-colors hover:bg-brick/10 hover:text-brick"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               )}
             </li>
           );

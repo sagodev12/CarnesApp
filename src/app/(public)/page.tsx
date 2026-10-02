@@ -1,44 +1,29 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
-import ProductGallery from "@/components/public/gallery/ProductGallery";
+import CategoryCard from "@/components/public/CategoryCard";
+import OfferShelf from "@/components/public/gallery/OfferShelf";
 import OpenStatus from "@/components/public/OpenStatus";
-import VisitSection from "@/components/public/VisitSection";
-import { toCoordinates } from "@/lib/location";
-import { PUBLIC_PAGE_SIZE, paginated } from "@/lib/pagination";
-import {
-  getActiveProductsPage,
-  getActiveSaleProducts,
-  getPublicCategories,
-} from "@/lib/products/public-queries";
+import { getPublicCategories, getSaleProductsOrEmpty } from "@/lib/products/public-queries";
 import { getSiteConfig } from "@/lib/site-config/queries";
 
 // Respaldo: el panel revalida esta página al guardar (revalidatePath).
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [config, firstPage, categories, offers] = await Promise.all([
+  const [config, categories, offers] = await Promise.all([
     getSiteConfig(),
-    // Si falla, la landing se muestra igual (sin productos) en vez de romperse.
-    getActiveProductsPage({ page: 1, categoryId: null, search: null }).catch((error) => {
-      console.error(error);
-      return paginated([], 0, 1, PUBLIC_PAGE_SIZE);
-    }),
     getPublicCategories(),
-    // Las ofertas son un extra: si fallan, la galería se muestra sin ellas.
-    getActiveSaleProducts().catch((error) => {
-      console.error(error);
-      return [];
-    }),
+    getSaleProductsOrEmpty(),
   ]);
-  const hasProducts = firstPage.total > 0;
-  const coordinates = toCoordinates(config);
-  // Hora del render (Server Component: se calcula una vez por render). La
-  // galería la usa al hidratar para decidir qué ofertas están vigentes.
+  // Hora del render (Server Component: se calcula una vez por render). Las
+  // ofertas la usan al hidratar para decidir cuáles están vigentes.
   const renderedAt = new Date().getTime();
 
   return (
     <>
-      <section id="nosotros" className="relative overflow-hidden">
+      <section className="relative overflow-hidden">
         {config.hero_image_url && (
           <>
             <Image
@@ -75,45 +60,54 @@ export default async function Home() {
               {config.description}
             </p>
           )}
-          {hasProducts && (
-            <a
-              href="#productos"
-              className="mt-8 inline-flex rounded-lg bg-brick px-6 py-3 font-semibold text-cream transition-colors hover:bg-brick-dark"
-            >
-              Ver productos
-            </a>
-          )}
+          <Link
+            href="/productos"
+            className="mt-8 inline-flex rounded-lg bg-brick px-6 py-3 font-semibold text-cream transition-colors hover:bg-brick-dark"
+          >
+            Ver productos
+          </Link>
         </div>
       </section>
 
-      {/* La última sección deja espacio abajo para la barra del pedido (fija). */}
-      <section
-        id="productos"
-        className={`mx-auto max-w-6xl scroll-mt-20 px-4 pt-12 sm:px-6 lg:px-8 ${
-          coordinates ? "pb-16" : "pb-32"
-        }`}
-      >
-        <header className="mb-8">
-          <h2 className="font-display text-3xl font-black sm:text-4xl">Nuestros productos</h2>
-          {config.phone_whatsapp && hasProducts && (
-            <p className="mt-2 text-charcoal/70">
-              Elige lo que necesitas y envíanos tu pedido por WhatsApp.
-            </p>
-          )}
-        </header>
-
-        <ProductGallery
-          initialPage={firstPage}
-          categories={categories}
+      <div className="mx-auto max-w-6xl space-y-14 px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <OfferShelf
           offers={offers}
           renderedAt={renderedAt}
-          phone={config.phone_whatsapp}
-          greeting={config.whatsapp_message}
-          storeAddress={config.address}
+          canOrder={Boolean(config.phone_whatsapp)}
+          variant="carousel"
         />
-      </section>
 
-      {coordinates && <VisitSection config={config} coordinates={coordinates} />}
+        {categories.length > 0 && (
+          <section aria-labelledby="categories-title">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="categories-title" className="font-display text-3xl font-black sm:text-4xl">
+                  Nuestras categorías
+                </h2>
+                {config.phone_whatsapp && (
+                  <p className="mt-2 text-charcoal/70">
+                    Elige lo que necesitas y envíanos tu pedido por WhatsApp.
+                  </p>
+                )}
+              </div>
+              <Link
+                href="/productos"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brick underline-offset-2 hover:underline"
+              >
+                Ver todos los productos
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+            <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <CategoryCard category={category} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </>
   );
 }

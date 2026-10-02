@@ -19,18 +19,17 @@ export default function VisitSection({ config, coordinates }: VisitSectionProps)
 
   return (
     <section
-      id="ubicacion"
       aria-labelledby="ubicacion-title"
-      className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-32 sm:px-6 lg:px-8"
+      className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
     >
       <div className="grid overflow-hidden rounded-3xl border border-line bg-white md:grid-cols-[1fr_1.4fr]">
         <div className="flex flex-col p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-wider text-mustard">
             Te esperamos
           </p>
-          <h2 id="ubicacion-title" className="mt-1 font-display text-3xl font-black sm:text-4xl">
+          <h1 id="ubicacion-title" className="mt-1 font-display text-3xl font-black sm:text-4xl">
             Visítanos
-          </h2>
+          </h1>
           <OpenStatus hours={config.opening_hours} className="mt-4 self-start" />
 
           <div className="mt-6 space-y-4 text-charcoal/80">

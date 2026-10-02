@@ -7,6 +7,9 @@ vi.mock("@/lib/auth/admin", () => ({ assertAdmin: () => assertAdmin() }));
 // Cliente de Supabase falso y encadenable que registra las llamadas.
 const calls: { table: string; op: string; payload?: unknown }[] = [];
 let dbError: { message: string; code?: string } | null = null;
+// Fila que devuelve maybeSingle() (lectura previa o fila borrada).
+const EMPTY_ROW = { image_url: null, logo_url: null, hero_image_url: null };
+let currentRow: Record<string, unknown> | null = EMPTY_ROW;
 
 function query(table: string) {
   const builder = {
@@ -15,7 +18,7 @@ function query(table: string) {
     delete: () => (calls.push({ table, op: "delete" }), builder),
     select: () => builder,
     eq: () => builder,
-    maybeSingle: () => Promise.resolve({ data: { image_url: null, logo_url: null, hero_image_url: null }, error: dbError }),
+    maybeSingle: () => Promise.resolve({ data: dbError ? null : currentRow, error: dbError }),
     then: (resolve: (value: unknown) => void) => resolve({ error: dbError }),
   };
   return builder;
@@ -40,7 +43,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { createCategory, deleteCategory } = await import("@/app/admin/categorias/actions");
+const { createCategory, deleteCategory, updateCategory } = await import("@/app/admin/categorias/actions");
+const storage = vi.mocked(await import("@/lib/supabase/storage"));
 const { createProduct, updateProduct } = await import("@/app/admin/productos/actions");
 const { updateSiteConfig } = await import("@/app/admin/configuracion/actions");
 
@@ -60,6 +64,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   calls.length = 0;
   dbError = null;
+  currentRow = EMPTY_ROW;
   assertAdmin.mockResolvedValue({ status: "admin", email: "admin@test.com" });
 });
 
@@ -67,6 +72,7 @@ describe("todas las acciones exigen admin antes de tocar la base", () => {
   const actions = {
     createCategory: () => createCategory(idle, form({ name: "Res" })),
     deleteCategory: () => deleteCategory(PRODUCT_ID),
+    updateCategory: () => updateCategory(PRODUCT_ID, idle, form({ name: "Res" })),
     createProduct: () => createProduct(idle, validProduct),
     updateProduct: () => updateProduct(PRODUCT_ID, idle, validProduct),
     updateSiteConfig: () => updateSiteConfig(idle, validConfig),
@@ -96,15 +102,123 @@ describe("createCategory", () => {
     const state = await createCategory(idle, form({ name: "Res", order: "1" }));
 
     expect(state.status).toBe("success");
-    expect(calls).toContainEqual({ table: "categories", op: "insert", payload: { name: "Res", order: 1 } });
+    expect(calls).toContainEqual({
+      table: "categories",
+      op: "insert",
+      payload: { name: "Res", slug: "res", description: null, order: 1, image_url: null },
+    });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/categorias");
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
     // Los productos incluyen el nombre de su categoría.
     expect(revalidateTag).toHaveBeenCalledWith("products", { expire: 0 });
   });
+
+  it("sube la imagen a la carpeta de categorías y guarda su URL", async () => {
+    const image = new File(["x"], "res.png", { type: "image/png" });
+    const withImage = form({ name: "Res Añeja", description: "Cortes madurados" });
+    withImage.set("image", image);
+
+    const state = await createCategory(idle, withImage);
+
+    expect(state.status).toBe("success");
+    expect(storage.uploadPublicImage).toHaveBeenCalledWith(image, "categories");
+    expect(calls).toContainEqual({
+      table: "categories",
+      op: "insert",
+      payload: {
+        name: "Res Añeja",
+        slug: "res-aneja",
+        description: "Cortes madurados",
+        order: 0,
+        image_url: "https://x/img.png",
+      },
+    });
+  });
+
+  it("si el nombre ya existe (slug único) lo marca en el campo y borra la imagen subida", async () => {
+    dbError = { message: "duplicate key value violates unique constraint", code: "23505" };
+    const withImage = form({ name: "Res" });
+    withImage.set("image", new File(["x"], "res.png", { type: "image/png" }));
+
+    const state = await createCategory(idle, withImage);
+
+    expect(state.status).toBe("error");
+    expect(state.fieldErrors?.name?.[0]).toMatch(/Ya existe una categoría/);
+    expect(storage.removeImageByUrl).toHaveBeenCalledWith("https://x/img.png");
+  });
+});
+
+describe("updateCategory", () => {
+  it("actualiza nombre, slug y descripción y redirige al listado", async () => {
+    await expect(
+      updateCategory(PRODUCT_ID, idle, form({ name: "Cerdo Criollo", description: "Del campo", order: "2" })),
+    ).rejects.toThrow("REDIRECT:/admin/categorias");
+
+    expect(calls).toContainEqual({
+      table: "categories",
+      op: "update",
+      payload: { name: "Cerdo Criollo", slug: "cerdo-criollo", description: "Del campo", order: 2, image_url: null },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(revalidateTag).toHaveBeenCalledWith("products", { expire: 0 });
+  });
+
+  it("al reemplazar la imagen borra la anterior", async () => {
+    currentRow = { image_url: "https://x/vieja.png" };
+    const withImage = form({ name: "Res" });
+    withImage.set("image", new File(["x"], "res.png", { type: "image/png" }));
+
+    await expect(updateCategory(PRODUCT_ID, idle, withImage)).rejects.toThrow("REDIRECT");
+
+    expect(calls).toContainEqual(
+      expect.objectContaining({ op: "update", payload: expect.objectContaining({ image_url: "https://x/img.png" }) }),
+    );
+    expect(storage.removeImageByUrl).toHaveBeenCalledWith("https://x/vieja.png");
+  });
+
+  it("quita la imagen si se marca 'Quitar imagen'", async () => {
+    currentRow = { image_url: "https://x/vieja.png" };
+
+    await expect(
+      updateCategory(PRODUCT_ID, idle, form({ name: "Res", remove_image: "on" })),
+    ).rejects.toThrow("REDIRECT");
+
+    expect(calls).toContainEqual(
+      expect.objectContaining({ op: "update", payload: expect.objectContaining({ image_url: null }) }),
+    );
+    expect(storage.removeImageByUrl).toHaveBeenCalledWith("https://x/vieja.png");
+  });
+
+  it("sin imagen nueva conserva la actual", async () => {
+    currentRow = { image_url: "https://x/actual.png" };
+
+    await expect(updateCategory(PRODUCT_ID, idle, form({ name: "Res" }))).rejects.toThrow("REDIRECT");
+
+    expect(calls).toContainEqual(
+      expect.objectContaining({ op: "update", payload: expect.objectContaining({ image_url: "https://x/actual.png" }) }),
+    );
+    expect(storage.removeImageByUrl).not.toHaveBeenCalledWith("https://x/actual.png");
+  });
+
+  it("rechaza ids que no son uuid", async () => {
+    const state = await updateCategory("abc", idle, form({ name: "Res" }));
+
+    expect(state.status).toBe("error");
+    expect(calls).toHaveLength(0);
+  });
 });
 
 describe("deleteCategory", () => {
+  it("borra también la imagen de la categoría", async () => {
+    currentRow = { image_url: "https://x/res.png" };
+
+    const result = await deleteCategory(PRODUCT_ID);
+
+    expect(result.status).toBe("success");
+    expect(calls).toContainEqual({ table: "categories", op: "delete" });
+    expect(storage.removeImageByUrl).toHaveBeenCalledWith("https://x/res.png");
+  });
+
   it("explica el error cuando la categoría tiene productos (FK)", async () => {
     dbError = { message: "violates foreign key constraint", code: "23503" };
 

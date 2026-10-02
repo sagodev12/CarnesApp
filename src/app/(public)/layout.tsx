@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import FloatingWhatsApp from "@/components/public/FloatingWhatsApp";
 import Footer from "@/components/public/Footer";
+import OrderBarContainer from "@/components/public/gallery/OrderBarContainer";
 import Header from "@/components/public/Header";
 import { toCoordinates } from "@/lib/location";
 import { brandHighlight } from "@/lib/site-config/defaults";
@@ -15,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const image = config.hero_image_url ?? config.logo_url;
 
   return {
-    title,
+    // Las páginas internas ponen su título: "Ofertas · <Negocio>".
+    title: { default: title, template: `%s · ${title}` },
     description,
     openGraph: {
       title,
@@ -60,6 +62,13 @@ export default async function PublicLayout({
       />
       <main className="flex-1">{children}</main>
       <Footer config={config} highlight={highlight} />
+      {config.phone_whatsapp && (
+        <OrderBarContainer
+          phone={config.phone_whatsapp}
+          greeting={config.whatsapp_message}
+          storeAddress={config.address}
+        />
+      )}
       {config.phone_whatsapp && (
         <FloatingWhatsApp phone={config.phone_whatsapp} message={config.whatsapp_message} />
       )}

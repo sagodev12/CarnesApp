@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 // ---- Mock: cliente de Supabase Storage que registra las subidas ----
-const upload = vi.fn(async (..._args: unknown[]) => ({ error: null }));
+const upload = vi.fn<(...args: unknown[]) => Promise<{ error: null }>>(async () => ({ error: null }));
 const getPublicUrl = vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } }));
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: () => ({ storage: { from: () => ({ upload, getPublicUrl }) } }),

@@ -19,7 +19,7 @@ export const PRODUCTS_TAG = "products";
 const CACHE_SECONDS = 3600;
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, sold_out, order, created_at, updated_at, category:categories(id, name)";
+  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, sold_out, order, created_at, updated_at, category:categories(id, name, slug)";
 
 type PageQuery = { page: number; categoryId: string | null; search: string | null };
 
@@ -129,17 +129,50 @@ export const getActiveSaleProducts = unstable_cache(
   { tags: [PRODUCTS_TAG], revalidate: CACHE_SECONDS },
 );
 
-export async function getPublicCategories(): Promise<Category[]> {
-  const { data, error } = await createClient()
-    .from("categories")
-    .select("id, name, order, created_at")
-    .order("order")
-    .order("name");
+// Pocas filas y se leen en cada página: una sola consulta cacheada.
+const getCategoriesCached = unstable_cache(
+  async (): Promise<Category[]> => {
+    const { data, error } = await createClient()
+      .from("categories")
+      .select("id, name, slug, description, image_url, order, created_at")
+      .order("order")
+      .order("name");
 
-  if (error) {
-    console.error("No se pudieron cargar las categorías públicas:", error.message);
+    // Un error se lanza (no se cachea) para no guardar una lista vacía.
+    if (error) throw new Error(error.message);
+
+    return data;
+  },
+  ["public-categories"],
+  { tags: [PRODUCTS_TAG], revalidate: CACHE_SECONDS },
+);
+
+export async function getPublicCategories(): Promise<Category[]> {
+  try {
+    return await getCategoriesCached();
+  } catch (error) {
+    console.error("No se pudieron cargar las categorías públicas:", (error as Error).message);
     return [];
   }
+}
 
-  return data;
+export async function getPublicCategoryBySlug(slug: string): Promise<Category | null> {
+  const categories = await getPublicCategories();
+  return categories.find((category) => category.slug === slug) ?? null;
+}
+
+// Para las páginas: si Supabase falla, se muestran vacías en vez de romperse.
+export function getFirstPageOrEmpty(categoryId: string | null) {
+  return getActiveProductsPage({ page: 1, categoryId, search: null }).catch((error) => {
+    console.error(error);
+    return paginated<ProductWithCategory>([], 0, 1, PUBLIC_PAGE_SIZE);
+  });
+}
+
+// Las ofertas son un extra: si fallan, la página sigue sin ellas.
+export function getSaleProductsOrEmpty() {
+  return getActiveSaleProducts().catch((error) => {
+    console.error(error);
+    return [] as ProductWithCategory[];
+  });
 }

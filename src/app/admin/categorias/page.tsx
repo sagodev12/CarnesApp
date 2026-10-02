@@ -21,7 +21,7 @@ export default async function AdminCategoriesPage() {
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <PageHeader
         title="Categorías"
-        description="Agrupan los productos y sirven de filtro en la galería."
+        description="Agrupan los productos. Cada una tiene su página en la tienda y una tarjeta en el inicio."
       />
 
       <div className="grid items-start gap-8 lg:grid-cols-[22rem_1fr]">

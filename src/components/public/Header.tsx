@@ -3,29 +3,39 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import BrandName from "@/components/public/Brandname";
 
 const LINKS = {
-  products: { href: "#productos", label: "Productos" },
-  about: { href: "#nosotros", label: "Nosotros" },
-  location: { href: "#ubicacion", label: "Ubicación" },
+  home: { href: "/", label: "Inicio" },
+  products: { href: "/productos", label: "Productos" },
+  offers: { href: "/ofertas", label: "Ofertas" },
+  location: { href: "/ubicacion", label: "Ubicación" },
+  // El footer (#contacto) está en todas las páginas.
   contact: { href: "#contacto", label: "Contacto" },
 };
+
+// /productos también queda activo dentro de una categoría (/productos/res).
+function isActive(href: string, pathname: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 type HeaderProps = {
   businessName: string;
   highlight?: string;
   logoUrl: string | null;
-  // Con ubicación configurada existe la sección #ubicacion.
+  // Con ubicación configurada existe la página /ubicacion.
   hasLocation: boolean;
 };
 
 export default function Header({ businessName, highlight, logoUrl, hasLocation }: HeaderProps) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const navLinks = hasLocation
-    ? [LINKS.products, LINKS.about, LINKS.location, LINKS.contact]
-    : [LINKS.products, LINKS.about, LINKS.contact];
+    ? [LINKS.home, LINKS.products, LINKS.offers, LINKS.location, LINKS.contact]
+    : [LINKS.home, LINKS.products, LINKS.offers, LINKS.contact];
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-cream/95 backdrop-blur">
@@ -52,15 +62,21 @@ export default function Header({ businessName, highlight, logoUrl, hasLocation }
 
         {/* Nav desktop */}
         <nav className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-charcoal/80 transition-colors hover:text-brick"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) => {
+            const active = isActive(link.href, pathname);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`text-sm font-medium transition-colors hover:text-brick ${
+                  active ? "text-brick" : "text-charcoal/80"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Toggle mobile */}
@@ -78,16 +94,22 @@ export default function Header({ businessName, highlight, logoUrl, hasLocation }
       {/* Menú mobile */}
       {open && (
         <nav className="flex flex-col gap-1 border-t border-line bg-cream px-4 pb-4 pt-2 md:hidden">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-2.5 text-base font-medium text-charcoal hover:bg-charcoal/5"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) => {
+            const active = isActive(link.href, pathname);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className={`rounded-md px-3 py-2.5 text-base font-medium hover:bg-charcoal/5 ${
+                  active ? "bg-charcoal/5 text-brick" : "text-charcoal"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
       )}
     </header>

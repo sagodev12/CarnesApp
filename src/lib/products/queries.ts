@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { Category, ProductWithCategory } from "@/types";
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, sold_out, order, created_at, updated_at, category:categories(id, name)";
+  "id, name, description, price, sale_price, sale_starts_at, sale_ends_at, unit, image_url, category_id, active, sold_out, order, created_at, updated_at, category:categories(id, name, slug)";
 
 // Consultas del panel admin (incluyen productos inactivos, usan service_role).
 // Quien las llame debe haber verificado antes que el usuario es admin.
@@ -81,10 +81,24 @@ export async function getProductById(id: string): Promise<ProductWithCategory | 
   return data;
 }
 
+const CATEGORY_COLUMNS = "id, name, slug, description, image_url, order, created_at";
+
+export async function getCategoryById(id: string): Promise<Category | null> {
+  const { data, error } = await createAdminClient()
+    .from("categories")
+    .select(CATEGORY_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo cargar la categoría: ${error.message}`);
+
+  return data;
+}
+
 export async function getCategories(): Promise<Category[]> {
   const { data, error } = await createAdminClient()
     .from("categories")
-    .select("id, name, order, created_at")
+    .select(CATEGORY_COLUMNS)
     .order("order")
     .order("name");
 
@@ -97,7 +111,7 @@ export async function getCategories(): Promise<Category[]> {
 export async function getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]> {
   const { data, error } = await createAdminClient()
     .from("categories")
-    .select("id, name, order, created_at, products(count)")
+    .select(`${CATEGORY_COLUMNS}, products(count)`)
     .order("order")
     .order("name")
     .overrideTypes<(Category & { products: { count: number }[] })[], { merge: false }>();

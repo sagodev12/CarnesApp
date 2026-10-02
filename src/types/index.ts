@@ -3,6 +3,10 @@ import type { OpeningHours } from "@/lib/hours";
 export type Category = {
   id: string;
   name: string;
+  // Parte de la URL de su página: /productos/<slug>.
+  slug: string;
+  description: string | null;
+  image_url: string | null;
   order: number;
   created_at: string;
 };
@@ -28,7 +32,7 @@ export type Product = {
 };
 
 export type ProductWithCategory = Product & {
-  category: Pick<Category, "id" | "name"> | null;
+  category: Pick<Category, "id" | "name" | "slug"> | null;
 };
 
 export type SiteConfig = {
