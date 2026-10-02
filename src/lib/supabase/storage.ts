@@ -6,6 +6,10 @@ import { createAdminClient } from "./server";
 
 export const IMAGES_BUCKET = "products";
 
+// Cada subida usa una ruta nueva (UUID), así que el contenido de una URL nunca
+// cambia: se puede cachear un año sin riesgo de servir imágenes obsoletas.
+export const IMAGE_CACHE_SECONDS = 60 * 60 * 24 * 365;
+
 export async function uploadPublicImage(file: File, folder?: string) {
   const supabase = createAdminClient();
   const extension = file.type.split("/")[1];
@@ -13,7 +17,7 @@ export async function uploadPublicImage(file: File, folder?: string) {
 
   const { error } = await supabase.storage
     .from(IMAGES_BUCKET)
-    .upload(path, file, { contentType: file.type });
+    .upload(path, file, { contentType: file.type, cacheControl: String(IMAGE_CACHE_SECONDS) });
 
   if (error) throw new Error(`No se pudo subir la imagen: ${error.message}`);
 

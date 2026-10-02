@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     remotePatterns: supabaseUrl
       ? [new URL(`${supabaseUrl}/storage/v1/object/public/**`)]
       : [],
+    // Las URLs de imágenes son inmutables (UUID por subida): cachear las
+    // versiones optimizadas 31 días en vez de las 4 h por defecto.
+    minimumCacheTTL: 60 * 60 * 24 * 31,
   },
   experimental: {
     serverActions: {
