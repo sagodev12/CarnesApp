@@ -15,6 +15,11 @@ Landing page parametrizable para carnicerías, con panel de administración para
 - 🛒 **Catálogo de productos** parametrizable — nombre, descripción, precio, unidad, categoría e imagen
 - 🖼️ **Gestión de imágenes** vía Supabase Storage
 - 📱 **Contacto directo por WhatsApp** — botón flotante general y "Consultar por este producto" en cada ítem del catálogo
+- 🧾 **Pedidos por WhatsApp** — el cliente arma su pedido en la web, con cantidades por peso o unidad e indicaciones por producto ("en bistec", "molida"), y lo envía como mensaje
+- 🔎 **Búsqueda y paginación** del catálogo, sin distinguir tildes ni mayúsculas ("salmon" encuentra "Salmón")
+- 🏷️ **Promociones** con precio rebajado y vigencia programada, y productos marcados como **agotados**
+- 📍 **Ubicación del local** con mapa de Google Maps y enlace para llegar; el administrador la elige en un mapa interactivo
+- 🕒 **Horario de atención** con indicador "Abierto ahora / Cerrado"
 - 🔐 **Panel de administración** protegido con Auth0 (login OAuth)
 - ⚙️ **Configuración del negocio** editable sin tocar código: nombre, logo, teléfono, horario, redes sociales, color principal
 - 🗄️ **Base de datos Postgres administrada** (Supabase) con Row Level Security (RLS)
@@ -29,8 +34,6 @@ El proyecto corre como una app Next.js desplegada en Vercel, que se conecta a tr
 - **Auth0** — autenticación del panel admin
 - **Supabase** — base de datos PostgreSQL + almacenamiento de imágenes
 - **WhatsApp (`wa.me`)** — contacto directo desde el cliente, sin pasar por el backend
-
-> 📎 El diagrama es editable: guarda también el archivo fuente `.excalidraw` en `docs/architecture/` y enlázalo aquí — ábrelo en [excalidraw.com](https://excalidraw.com) para modificarlo.
 
 ## 🧱 Stack técnico
 
@@ -49,15 +52,15 @@ El proyecto corre como una app Next.js desplegada en Vercel, que se conecta a tr
 
 ### Requisitos previos
 
-- Node.js 18+
+- Node.js 20.9+ (requerido por Next.js 16)
 - Cuenta en [Supabase](https://supabase.com)
 - Cuenta en [Auth0](https://auth0.com)
 
 ### Instalación
 
 ```bash
-git clone https://github.com/tu-usuario/carniceria-landing.git
-cd carniceria-landing
+git clone https://github.com/sagodev12/CarnesApp.git
+cd CarnesApp
 npm install
 ```
 
@@ -87,10 +90,18 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000).
 
+### Correr las pruebas
+
+```bash
+npm test
+```
+
+Pruebas unitarias con Vitest para la lógica de pedidos, promociones, búsqueda, horarios, validaciones y la protección del panel de administración.
+
 ## 📁 Estructura del proyecto
 
 ```
-carniceria-landing/
+CarnesApp/
 ├── src/
 │   ├── app/
 │   │   ├── (public)/          # Landing pública
@@ -101,8 +112,9 @@ carniceria-landing/
 │   │   └── admin/
 │   ├── lib/                    # Clientes Supabase, Auth0, helpers WhatsApp
 │   └── types/
+├── supabase/                   # Políticas RLS y scripts SQL
 ├── docs/
-│   └── arquitectura-carniceria.excalidraw
+│   └── architecture/           # Diagrama de arquitectura
 └── ...
 ```
 
