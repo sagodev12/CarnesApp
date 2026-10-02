@@ -8,7 +8,15 @@ vi.mock("@/lib/auth/admin", () => ({ assertAdmin: () => assertAdmin() }));
 const calls: { table: string; op: string; payload?: unknown }[] = [];
 let dbError: { message: string; code?: string } | null = null;
 // Fila que devuelve maybeSingle() (lectura previa o fila borrada).
-const EMPTY_ROW = { image_url: null, logo_url: null, hero_image_url: null, about_image_url: null, offers_image_url: null };
+const EMPTY_ROW = {
+  image_url: null,
+  logo_url: null,
+  hero_image_url: null,
+  hero_image_tone: null,
+  about_image_url: null,
+  offers_image_url: null,
+  offers_image_tone: null,
+};
 let currentRow: Record<string, unknown> | null = EMPTY_ROW;
 
 function query(table: string) {
@@ -29,6 +37,14 @@ vi.mock("@/lib/supabase/server", () => ({ createAdminClient: () => createAdminCl
 vi.mock("@/lib/supabase/storage", () => ({
   uploadPublicImage: vi.fn(async () => ({ url: "https://x/img.png", path: "img.png" })),
   removeImageByUrl: vi.fn(async () => {}),
+}));
+
+// Brillo de las imágenes con texto encima (portada y franja de ofertas).
+const analyzeImageTone = vi.fn<(...args: unknown[]) => Promise<"light">>(async () => "light");
+const analyzeImageUrl = vi.fn<(...args: unknown[]) => Promise<"dark">>(async () => "dark");
+vi.mock("@/lib/image-tone", () => ({
+  analyzeImageTone: (...args: unknown[]) => analyzeImageTone(...args),
+  analyzeImageUrl: (...args: unknown[]) => analyzeImageUrl(...args),
 }));
 
 const revalidatePath = vi.fn();
@@ -423,6 +439,7 @@ describe("updateOffersSettings", () => {
       offers_layout: "grid",
       offers_limit: 6,
       offers_image_url: null,
+      offers_image_tone: null,
       updated_at: expect.any(String),
     });
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
@@ -463,6 +480,11 @@ describe("updateOffersSettings", () => {
       expect.objectContaining({ op: "update", payload: expect.objectContaining({ offers_image_url: "https://x/img.png" }) }),
     );
     expect(storage.removeImageByUrl).toHaveBeenCalledWith("https://x/vieja.jpg");
+    // Se mide el brillo de la imagen nueva para elegir el color del texto.
+    expect(analyzeImageTone).toHaveBeenCalledWith(image);
+    expect(calls).toContainEqual(
+      expect.objectContaining({ op: "update", payload: expect.objectContaining({ offers_image_tone: "light" }) }),
+    );
   });
 
   it("conserva la imagen actual si no se sube otra", async () => {
@@ -478,5 +500,60 @@ describe("updateOffersSettings", () => {
       expect.objectContaining({ op: "update", payload: expect.objectContaining({ offers_image_url: "https://x/actual.jpg" }) }),
     );
     expect(storage.removeImageByUrl).not.toHaveBeenCalled();
+  });
+});
+
+describe("tono de las imágenes con texto encima", () => {
+  const baseConfig = { business_name: "Surticarnes", phone_whatsapp: "3123627031", primary_color: "#9a3324" };
+
+  function siteUpdate() {
+    return calls.find((call) => call.table === "site_config" && call.op === "update")?.payload;
+  }
+
+  it("al subir la imagen de portada guarda su tono", async () => {
+    const withHero = form(baseConfig);
+    const image = new File(["x"], "portada.jpg", { type: "image/jpeg" });
+    withHero.set("hero", image);
+
+    await updateSiteConfig(idle, withHero);
+
+    expect(analyzeImageTone).toHaveBeenCalledWith(image);
+    expect(siteUpdate()).toMatchObject({ hero_image_url: "https://x/img.png", hero_image_tone: "light" });
+  });
+
+  it("al quitar la imagen de portada borra el tono", async () => {
+    currentRow = { ...EMPTY_ROW, hero_image_url: "https://x/portada.jpg", hero_image_tone: "dark" };
+
+    await updateSiteConfig(idle, form({ ...baseConfig, remove_hero: "on" }));
+
+    expect(siteUpdate()).toMatchObject({ hero_image_url: null, hero_image_tone: null });
+  });
+
+  it("analiza una imagen ya subida que aún no tiene tono", async () => {
+    currentRow = { ...EMPTY_ROW, hero_image_url: "https://x/portada.jpg" };
+
+    await updateSiteConfig(idle, form(baseConfig));
+
+    expect(analyzeImageUrl).toHaveBeenCalledWith("https://x/portada.jpg");
+    expect(siteUpdate()).toMatchObject({ hero_image_tone: "dark" });
+  });
+
+  it("no vuelve a analizar una imagen que ya tiene tono", async () => {
+    currentRow = { ...EMPTY_ROW, hero_image_url: "https://x/portada.jpg", hero_image_tone: "light" };
+
+    await updateSiteConfig(idle, form(baseConfig));
+
+    expect(analyzeImageTone).not.toHaveBeenCalled();
+    expect(analyzeImageUrl).not.toHaveBeenCalled();
+    expect(siteUpdate()).toMatchObject({ hero_image_tone: "light" });
+  });
+
+  it("la franja de ofertas también analiza su imagen ya subida sin tono", async () => {
+    currentRow = { ...EMPTY_ROW, offers_image_url: "https://x/fondo.jpg" };
+
+    await updateOffersSettings(idle, form({ offers_style: "image", offers_layout: "carousel", offers_limit: "12" }));
+
+    expect(analyzeImageUrl).toHaveBeenCalledWith("https://x/fondo.jpg");
+    expect(siteUpdate()).toMatchObject({ offers_image_tone: "dark" });
   });
 });

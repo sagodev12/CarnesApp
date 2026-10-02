@@ -4,7 +4,9 @@ import { ArrowRight } from "lucide-react";
 
 import CategoryCard from "@/components/public/CategoryCard";
 import OfferShelf from "@/components/public/gallery/OfferShelf";
+import { imageTextTheme } from "@/components/public/imageText";
 import OpenStatus from "@/components/public/OpenStatus";
+import { isImageTone } from "@/lib/luminance";
 import { offersBanner } from "@/lib/offers-banner";
 import { getPublicCategories, getSaleProductsOrEmpty } from "@/lib/products/public-queries";
 import { getSiteConfig } from "@/lib/site-config/queries";
@@ -21,6 +23,10 @@ export default async function Home() {
   // Hora del render (Server Component: se calcula una vez por render). Las
   // ofertas la usan al hidratar para decidir cuáles están vigentes.
   const renderedAt = new Date().getTime();
+  // Con foto de portada, el color del texto depende de su brillo.
+  const hero = config.hero_image_url
+    ? imageTextTheme(isImageTone(config.hero_image_tone) ? config.hero_image_tone : null)
+    : null;
 
   return (
     <>
@@ -35,18 +41,18 @@ export default async function Home() {
               sizes="100vw"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-charcoal/85 via-charcoal/60 to-charcoal/20" />
+            <div className={`absolute inset-0 ${hero?.overlay}`} />
           </>
         )}
 
         <div
           className={`relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 ${
-            config.hero_image_url ? "text-cream" : "text-charcoal"
+            hero ? hero.text : "text-charcoal"
           }`}
         >
           <OpenStatus
             hours={config.opening_hours}
-            tone={config.hero_image_url ? "light" : "dark"}
+            tone={hero?.light ? "light" : "dark"}
             className="mb-5"
           />
           <h1 className="max-w-2xl font-display text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
@@ -55,7 +61,7 @@ export default async function Home() {
           {config.description && (
             <p
               className={`mt-4 max-w-xl text-lg ${
-                config.hero_image_url ? "text-cream/85" : "text-charcoal/70"
+                hero ? hero.muted : "text-charcoal/70"
               }`}
             >
               {config.description}

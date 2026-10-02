@@ -7,6 +7,7 @@ import { Flame } from "lucide-react";
 import type { OffersBanner, OfferStyle } from "@/lib/offers-banner";
 import type { ProductWithCategory } from "@/types";
 
+import { imageTextTheme } from "../imageText";
 import ProductList from "./ProductList";
 
 type OfferBannerProps = {
@@ -17,11 +18,11 @@ type OfferBannerProps = {
   canOrder: boolean;
 };
 
-// Clases por estilo: fondo y colores de texto de la franja.
-const THEMES: Record<
-  OfferStyle,
-  { section: string; eyebrow: string; subtitle: string; button: string }
-> = {
+type Theme = { section: string; eyebrow: string; subtitle: string; button: string };
+
+// Clases por estilo: fondo y colores de texto de la franja. El estilo con
+// imagen se arma según el brillo de la foto (ver imageTheme).
+const THEMES: Record<Exclude<OfferStyle, "image">, Theme> = {
   dark: {
     section: "bg-charcoal text-cream",
     eyebrow: "text-mustard",
@@ -40,19 +41,30 @@ const THEMES: Record<
     subtitle: "text-charcoal/70",
     button: "border-charcoal/20 hover:bg-charcoal hover:text-cream",
   },
-  image: {
-    section: "bg-charcoal text-cream",
-    eyebrow: "text-mustard",
-    subtitle: "text-cream/85",
-    button: "border-cream/40 bg-charcoal/30 hover:bg-cream hover:text-charcoal",
-  },
 };
+
+function imageTheme(text: ReturnType<typeof imageTextTheme>): Theme {
+  return text.light
+    ? {
+        section: `bg-charcoal ${text.text}`,
+        eyebrow: text.accent,
+        subtitle: text.muted,
+        button: "border-cream/40 bg-charcoal/30 hover:bg-cream hover:text-charcoal",
+      }
+    : {
+        section: `bg-cream ${text.text}`,
+        eyebrow: text.accent,
+        subtitle: text.muted,
+        button: "border-charcoal/30 bg-cream/50 hover:bg-charcoal hover:text-cream",
+      };
+}
 
 // Franja destacada de ofertas del inicio (se configura en /admin/ofertas).
 export default function OfferBanner({ settings, offers, now, canOrder }: OfferBannerProps) {
-  const theme = THEMES[settings.style];
   const shown = offers.slice(0, settings.limit);
   const withImage = settings.style === "image" && settings.imageUrl;
+  const imageText = imageTextTheme(settings.imageTone);
+  const theme = settings.style === "image" ? imageTheme(imageText) : THEMES[settings.style];
 
   return (
     <section
@@ -70,7 +82,7 @@ export default function OfferBanner({ settings, offers, now, canOrder }: OfferBa
             unoptimized={settings.imageUrl?.startsWith("blob:")}
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-charcoal/90 via-charcoal/70 to-charcoal/40" />
+          <div className={`absolute inset-0 ${imageText.overlay}`} />
         </>
       )}
 
@@ -98,8 +110,8 @@ export default function OfferBanner({ settings, offers, now, canOrder }: OfferBa
           </Link>
         </div>
 
-        {/* Las tarjetas son blancas: su texto va en oscuro sobre cualquier fondo. */}
-        <div className="text-charcoal">
+        {/* Las tarjetas son blancas: texto oscuro y sin la sombra del encabezado. */}
+        <div className="text-charcoal [text-shadow:none]">
           <ProductList
             products={shown}
             now={now}

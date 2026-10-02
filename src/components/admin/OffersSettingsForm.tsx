@@ -22,6 +22,7 @@ import type { ProductWithCategory, SiteConfig } from "@/types";
 
 import FormSection from "./FormSection";
 import ImageField from "./ImageField";
+import { measureImageTone } from "./measureImageTone";
 
 type OffersSettingsFormProps = {
   config: SiteConfig;
@@ -67,14 +68,20 @@ export default function OffersSettingsForm({
   const [limit, setLimit] = useState(String(saved.limit));
   // Imagen elegida (aún sin subir) como URL local, y casilla "Quitar".
   const [localImage, setLocalImage] = useState<string | null>(null);
+  const [localTone, setLocalTone] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
 
   function chooseImage(file: File | null) {
     if (localImage) URL.revokeObjectURL(localImage);
-    setLocalImage(file ? URL.createObjectURL(file) : null);
+    const url = file ? URL.createObjectURL(file) : null;
+    setLocalImage(url);
+    setLocalTone(null);
+    // Al guardar, el servidor mide la imagen igual; aquí solo para la vista previa.
+    if (url) void measureImageTone(url).then((tone) => setLocalTone(tone));
   }
 
   const imageUrl = localImage ?? (removeImage ? null : config.offers_image_url);
+  const imageTone = localImage ? localTone : removeImage ? null : config.offers_image_tone;
   const parsedLimit = Number(limit);
   const preview = offersBanner({
     offers_visible: visible,
@@ -83,6 +90,7 @@ export default function OffersSettingsForm({
     offers_subtitle: subtitle.trim() || null,
     offers_style: style,
     offers_image_url: imageUrl,
+    offers_image_tone: imageTone,
     offers_layout: layout,
     offers_limit: Number.isInteger(parsedLimit) ? parsedLimit : OFFERS_LIMIT.default,
   });

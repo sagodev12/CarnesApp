@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { assertAdmin } from "@/lib/auth/admin";
 import { formValues, type FormState } from "@/lib/forms";
+import { toneForImage } from "@/lib/tone-for-image";
 import { createAdminClient } from "@/lib/supabase/server";
 import { removeImageByUrl, uploadPublicImage } from "@/lib/supabase/storage";
 import { parseOffersFormData } from "@/lib/validations/offers.schema";
@@ -34,7 +35,7 @@ export async function updateOffersSettings(
   // site_config es un registro único (columna singleton).
   const { data: current, error: readError } = await supabase
     .from("site_config")
-    .select("offers_image_url")
+    .select("offers_image_url, offers_image_tone")
     .eq("singleton", true)
     .maybeSingle();
 
@@ -69,9 +70,21 @@ export async function updateOffersSettings(
     imageUrl = null;
   }
 
+  // El brillo del fondo decide el color del texto de la franja.
+  const imageTone = await toneForImage({
+    url: imageUrl,
+    file: image,
+    previousTone: current.offers_image_tone,
+  });
+
   const { error } = await supabase
     .from("site_config")
-    .update({ ...settings, offers_image_url: imageUrl, updated_at: new Date().toISOString() })
+    .update({
+      ...settings,
+      offers_image_url: imageUrl,
+      offers_image_tone: imageTone,
+      updated_at: new Date().toISOString(),
+    })
     .eq("singleton", true);
 
   if (error) {

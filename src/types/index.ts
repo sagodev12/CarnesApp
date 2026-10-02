@@ -40,6 +40,8 @@ export type SiteConfig = {
   business_name: string;
   logo_url: string | null;
   hero_image_url: string | null;
+  // Brillo de la imagen de portada ("light" | "dark"; null = sin analizar).
+  hero_image_tone: string | null;
   // Eslogan de la portada (también al compartir el enlace).
   description: string | null;
   // Texto del footer; null = se usa el eslogan.
@@ -55,6 +57,7 @@ export type SiteConfig = {
   offers_subtitle: string | null;
   offers_style: string;
   offers_image_url: string | null;
+  offers_image_tone: string | null;
   offers_layout: string;
   offers_limit: number;
   address: string | null;

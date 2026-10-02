@@ -12,6 +12,7 @@ describe("offersBanner", () => {
       subtitle: null,
       style: "dark",
       imageUrl: null,
+      imageTone: null,
       layout: "carousel",
       limit: 12,
     });
@@ -49,6 +50,14 @@ describe("offersBanner", () => {
     const config = withSiteConfigDefaults({ offers_style: "image", offers_image_url: "https://x/fondo.jpg" });
 
     expect(offersBanner(config)).toMatchObject({ style: "image", imageUrl: "https://x/fondo.jpg" });
+  });
+
+  it("pasa el tono detectado de la imagen e ignora valores inválidos", () => {
+    const light = withSiteConfigDefaults({ offers_image_url: "https://x/f.jpg", offers_image_tone: "light" });
+    const invalid = withSiteConfigDefaults({ offers_image_url: "https://x/f.jpg", offers_image_tone: "gris" as never });
+
+    expect(offersBanner(light).imageTone).toBe("light");
+    expect(offersBanner(invalid).imageTone).toBeNull();
   });
 
   it("descarta valores guardados inválidos", () => {

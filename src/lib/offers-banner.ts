@@ -1,5 +1,7 @@
 import type { SiteConfig } from "@/types";
 
+import { isImageTone, type ImageTone } from "./luminance";
+
 // Estilos de la franja de ofertas del inicio (se eligen en /admin/ofertas).
 export const OFFER_STYLES = [
   { value: "dark", label: "Oscuro" },
@@ -28,6 +30,8 @@ export type OffersBanner = {
   subtitle: string | null;
   style: OfferStyle;
   imageUrl: string | null;
+  // Brillo de la imagen: decide el color del texto (null = sin analizar).
+  imageTone: ImageTone | null;
   layout: OfferLayout;
   limit: number;
 };
@@ -40,6 +44,7 @@ type OffersConfig = Pick<
   | "offers_subtitle"
   | "offers_style"
   | "offers_image_url"
+  | "offers_image_tone"
   | "offers_layout"
   | "offers_limit"
 >;
@@ -67,6 +72,7 @@ export function offersBanner(config: OffersConfig): OffersBanner {
     // Sin imagen no se puede usar el estilo con imagen.
     style: style === "image" && !imageUrl ? "dark" : style,
     imageUrl,
+    imageTone: isImageTone(config.offers_image_tone) ? config.offers_image_tone : null,
     layout: isLayout(config.offers_layout) ? config.offers_layout : "carousel",
     limit: clampLimit(config.offers_limit),
   };

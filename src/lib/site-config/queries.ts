@@ -13,7 +13,7 @@ export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
   const { data, error } = await createClient()
     .from("site_config")
     .select(
-      "id, business_name, logo_url, hero_image_url, description, footer_text, about_title, about_text, about_image_url, offers_visible, offers_eyebrow, offers_title, offers_subtitle, offers_style, offers_image_url, offers_layout, offers_limit, address, phone_whatsapp, whatsapp_message, schedule, instagram, facebook, primary_color, latitude, longitude, opening_hours",
+      "id, business_name, logo_url, hero_image_url, hero_image_tone, description, footer_text, about_title, about_text, about_image_url, offers_visible, offers_eyebrow, offers_title, offers_subtitle, offers_style, offers_image_url, offers_image_tone, offers_layout, offers_limit, address, phone_whatsapp, whatsapp_message, schedule, instagram, facebook, primary_color, latitude, longitude, opening_hours",
     )
     .eq("singleton", true)
     .maybeSingle();

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { assertAdmin } from "@/lib/auth/admin";
 import { formValues, type FormState } from "@/lib/forms";
+import { toneForImage } from "@/lib/tone-for-image";
 import { createAdminClient } from "@/lib/supabase/server";
 import { removeImageByUrl, uploadPublicImage } from "@/lib/supabase/storage";
 import { parseSiteConfigFormData } from "@/lib/validations/site-config.schema";
@@ -52,7 +53,7 @@ export async function updateSiteConfig(
   // site_config es un registro único (columna singleton).
   const { data: current, error: readError } = await supabase
     .from("site_config")
-    .select("id, logo_url, hero_image_url, about_image_url")
+    .select("id, logo_url, hero_image_url, hero_image_tone, about_image_url")
     .eq("singleton", true)
     .maybeSingle();
 
@@ -75,12 +76,20 @@ export async function updateSiteConfig(
     return { status: "error", message: (error as Error).message, values };
   }
 
+  // La portada lleva texto encima: su brillo decide el color del texto.
+  const heroTone = await toneForImage({
+    url: heroUrl,
+    file: hero,
+    previousTone: current.hero_image_tone,
+  });
+
   const { error } = await supabase
     .from("site_config")
     .update({
       ...config,
       logo_url: logoUrl,
       hero_image_url: heroUrl,
+      hero_image_tone: heroTone,
       about_image_url: aboutUrl,
       updated_at: new Date().toISOString(),
     })
