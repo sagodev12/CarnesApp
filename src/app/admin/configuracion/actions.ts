@@ -26,7 +26,7 @@ export async function updateSiteConfig(
 ): Promise<FormState> {
   await assertAdmin();
 
-  const values = formValues(formData, ["remove_logo", "remove_hero"]);
+  const values = formValues(formData, ["remove_logo", "remove_hero", "remove_about_image"]);
   const parsed = parseSiteConfigFormData(formData);
 
   if (!parsed.success) {
@@ -38,13 +38,21 @@ export async function updateSiteConfig(
     };
   }
 
-  const { logo, hero, remove_logo, remove_hero, ...config } = parsed.data;
+  const {
+    logo,
+    hero,
+    about_image: aboutImage,
+    remove_logo,
+    remove_hero,
+    remove_about_image,
+    ...config
+  } = parsed.data;
   const supabase = createAdminClient();
 
   // site_config es un registro único (columna singleton).
   const { data: current, error: readError } = await supabase
     .from("site_config")
-    .select("id, logo_url, hero_image_url")
+    .select("id, logo_url, hero_image_url, about_image_url")
     .eq("singleton", true)
     .maybeSingle();
 
@@ -58,9 +66,11 @@ export async function updateSiteConfig(
 
   let logoUrl: string | null;
   let heroUrl: string | null;
+  let aboutUrl: string | null;
   try {
     logoUrl = await resolveImage(current.logo_url, logo, remove_logo);
     heroUrl = await resolveImage(current.hero_image_url, hero, remove_hero);
+    aboutUrl = await resolveImage(current.about_image_url, aboutImage, remove_about_image);
   } catch (error) {
     return { status: "error", message: (error as Error).message, values };
   }
@@ -71,6 +81,7 @@ export async function updateSiteConfig(
       ...config,
       logo_url: logoUrl,
       hero_image_url: heroUrl,
+      about_image_url: aboutUrl,
       updated_at: new Date().toISOString(),
     })
     .eq("singleton", true);
@@ -78,6 +89,7 @@ export async function updateSiteConfig(
   if (error) {
     if (logoUrl !== current.logo_url) await removeImageByUrl(logoUrl);
     if (heroUrl !== current.hero_image_url) await removeImageByUrl(heroUrl);
+    if (aboutUrl !== current.about_image_url) await removeImageByUrl(aboutUrl);
 
     return {
       status: "error",
@@ -88,6 +100,7 @@ export async function updateSiteConfig(
 
   if (logoUrl !== current.logo_url) await removeImageByUrl(current.logo_url);
   if (heroUrl !== current.hero_image_url) await removeImageByUrl(current.hero_image_url);
+  if (aboutUrl !== current.about_image_url) await removeImageByUrl(current.about_image_url);
 
   revalidatePath("/admin/configuracion");
   revalidatePath("/", "layout");

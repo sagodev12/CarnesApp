@@ -2,6 +2,7 @@ import { Clock, MapPin, PhoneIcon } from "lucide-react";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 
 import { googleMapsDirectionsUrl, toCoordinates } from "@/lib/location";
+import { footerText } from "@/lib/site-config/defaults";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { SiteConfig } from "@/types";
 
@@ -21,7 +22,6 @@ function displayPhone(phone: string) {
 export default function Footer({ config, highlight }: FooterProps) {
   const {
     business_name: businessName,
-    description,
     address,
     schedule,
     phone_whatsapp: phone,
@@ -29,6 +29,7 @@ export default function Footer({ config, highlight }: FooterProps) {
     facebook,
   } = config;
   const coordinates = toCoordinates(config);
+  const description = footerText(config);
 
   return (
     <footer id="contacto" className="border-t border-line bg-charcoal text-cream">

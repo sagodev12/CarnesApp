@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import CategoryCard from "@/components/public/CategoryCard";
 import OfferShelf from "@/components/public/gallery/OfferShelf";
 import OpenStatus from "@/components/public/OpenStatus";
+import { offersBanner } from "@/lib/offers-banner";
 import { getPublicCategories, getSaleProductsOrEmpty } from "@/lib/products/public-queries";
 import { getSiteConfig } from "@/lib/site-config/queries";
 
@@ -74,7 +75,8 @@ export default async function Home() {
           offers={offers}
           renderedAt={renderedAt}
           canOrder={Boolean(config.phone_whatsapp)}
-          variant="carousel"
+          variant="banner"
+          banner={offersBanner(config)}
         />
 
         {categories.length > 0 && (

@@ -8,7 +8,7 @@ vi.mock("@/lib/auth/admin", () => ({ assertAdmin: () => assertAdmin() }));
 const calls: { table: string; op: string; payload?: unknown }[] = [];
 let dbError: { message: string; code?: string } | null = null;
 // Fila que devuelve maybeSingle() (lectura previa o fila borrada).
-const EMPTY_ROW = { image_url: null, logo_url: null, hero_image_url: null };
+const EMPTY_ROW = { image_url: null, logo_url: null, hero_image_url: null, about_image_url: null, offers_image_url: null };
 let currentRow: Record<string, unknown> | null = EMPTY_ROW;
 
 function query(table: string) {
@@ -47,6 +47,7 @@ const { createCategory, deleteCategory, updateCategory } = await import("@/app/a
 const storage = vi.mocked(await import("@/lib/supabase/storage"));
 const { createProduct, updateProduct } = await import("@/app/admin/productos/actions");
 const { updateSiteConfig } = await import("@/app/admin/configuracion/actions");
+const { updateOffersSettings } = await import("@/app/admin/ofertas/actions");
 
 const PRODUCT_ID = "4352e764-3ae0-43f0-ac77-dce1563944c7";
 const idle = { status: "idle" as const };
@@ -58,6 +59,7 @@ function form(fields: Record<string, string>) {
 }
 
 const validProduct = form({ name: "Chata", description: "", price: "32000", unit: "kg", order: "0", active: "on" });
+const validOffers = form({ offers_visible: "on", offers_style: "brand", offers_layout: "grid", offers_limit: "6" });
 const validConfig = form({ business_name: "Surticarnes", phone_whatsapp: "3123627031", primary_color: "#9a3324" });
 
 beforeEach(() => {
@@ -76,6 +78,7 @@ describe("todas las acciones exigen admin antes de tocar la base", () => {
     createProduct: () => createProduct(idle, validProduct),
     updateProduct: () => updateProduct(PRODUCT_ID, idle, validProduct),
     updateSiteConfig: () => updateSiteConfig(idle, validConfig),
+    updateOffersSettings: () => updateOffersSettings(idle, validOffers),
   };
 
   for (const [name, run] of Object.entries(actions)) {
@@ -330,6 +333,49 @@ describe("updateSiteConfig", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 
+  it("guarda el texto del footer y la sección Nosotros", async () => {
+    const withAbout = form({
+      business_name: "Surticarnes",
+      phone_whatsapp: "3123627031",
+      primary_color: "#9a3324",
+      footer_text: "Desde 1998",
+      about_title: "Nuestra historia",
+      about_text: "Empezamos en 1998.",
+    });
+    const image = new File(["x"], "local.jpg", { type: "image/jpeg" });
+    withAbout.set("about_image", image);
+
+    const state = await updateSiteConfig(idle, withAbout);
+
+    expect(state.status).toBe("success");
+    expect(storage.uploadPublicImage).toHaveBeenCalledWith(image, "site");
+    const update = calls.find((call) => call.table === "site_config" && call.op === "update");
+    expect(update?.payload).toMatchObject({
+      footer_text: "Desde 1998",
+      about_title: "Nuestra historia",
+      about_text: "Empezamos en 1998.",
+      about_image_url: "https://x/img.png",
+    });
+    // Solo columnas de la tabla: el archivo y la casilla no se envían.
+    expect(update?.payload).not.toHaveProperty("about_image");
+    expect(update?.payload).not.toHaveProperty("remove_about_image");
+  });
+
+  it("al quitar la imagen de Nosotros borra la anterior", async () => {
+    currentRow = { ...EMPTY_ROW, id: "1", about_image_url: "https://x/local.jpg" };
+
+    const state = await updateSiteConfig(
+      idle,
+      form({ business_name: "Surticarnes", phone_whatsapp: "3123627031", primary_color: "#9a3324", remove_about_image: "on" }),
+    );
+
+    expect(state.status).toBe("success");
+    expect(calls).toContainEqual(
+      expect.objectContaining({ table: "site_config", op: "update", payload: expect.objectContaining({ about_image_url: null }) }),
+    );
+    expect(storage.removeImageByUrl).toHaveBeenCalledWith("https://x/local.jpg");
+  });
+
   it("guarda la ubicación del local", async () => {
     const withLocation = form({
       business_name: "Surticarnes",
@@ -349,5 +395,88 @@ describe("updateSiteConfig", () => {
         payload: expect.objectContaining({ latitude: 4.609711, longitude: -74.08175 }),
       }),
     );
+  });
+});
+
+describe("updateOffersSettings", () => {
+  it("guarda solo las columnas de la franja de ofertas y revalida el sitio", async () => {
+    const state = await updateOffersSettings(
+      idle,
+      form({
+        offers_visible: "on",
+        offers_eyebrow: "Este fin de semana",
+        offers_title: "Precios bajos",
+        offers_style: "brand",
+        offers_layout: "grid",
+        offers_limit: "6",
+      }),
+    );
+
+    expect(state.status).toBe("success");
+    const update = calls.find((call) => call.table === "site_config" && call.op === "update");
+    expect(update?.payload).toEqual({
+      offers_visible: true,
+      offers_eyebrow: "Este fin de semana",
+      offers_title: "Precios bajos",
+      offers_subtitle: null,
+      offers_style: "brand",
+      offers_layout: "grid",
+      offers_limit: 6,
+      offers_image_url: null,
+      updated_at: expect.any(String),
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/ofertas");
+  });
+
+  it("devuelve errores de validación sin escribir", async () => {
+    const state = await updateOffersSettings(idle, form({ offers_style: "neon", offers_layout: "grid", offers_limit: "6" }));
+
+    expect(state.status).toBe("error");
+    expect(state.fieldErrors?.offers_style).toBeDefined();
+    expect(calls.filter((call) => call.op === "update")).toHaveLength(0);
+  });
+
+  it("el estilo con imagen exige una imagen de fondo", async () => {
+    const state = await updateOffersSettings(
+      idle,
+      form({ offers_style: "image", offers_layout: "carousel", offers_limit: "12" }),
+    );
+
+    expect(state.status).toBe("error");
+    expect(state.fieldErrors?.offers_image?.[0]).toMatch(/imagen/i);
+    expect(storage.uploadPublicImage).not.toHaveBeenCalled();
+    expect(calls.filter((call) => call.op === "update")).toHaveLength(0);
+  });
+
+  it("sube la imagen de fondo nueva y borra la anterior", async () => {
+    currentRow = { ...EMPTY_ROW, offers_image_url: "https://x/vieja.jpg" };
+    const withImage = form({ offers_style: "image", offers_layout: "carousel", offers_limit: "12" });
+    const image = new File(["x"], "fondo.jpg", { type: "image/jpeg" });
+    withImage.set("offers_image", image);
+
+    const state = await updateOffersSettings(idle, withImage);
+
+    expect(state.status).toBe("success");
+    expect(storage.uploadPublicImage).toHaveBeenCalledWith(image, "site");
+    expect(calls).toContainEqual(
+      expect.objectContaining({ op: "update", payload: expect.objectContaining({ offers_image_url: "https://x/img.png" }) }),
+    );
+    expect(storage.removeImageByUrl).toHaveBeenCalledWith("https://x/vieja.jpg");
+  });
+
+  it("conserva la imagen actual si no se sube otra", async () => {
+    currentRow = { ...EMPTY_ROW, offers_image_url: "https://x/actual.jpg" };
+
+    const state = await updateOffersSettings(
+      idle,
+      form({ offers_style: "image", offers_layout: "carousel", offers_limit: "12" }),
+    );
+
+    expect(state.status).toBe("success");
+    expect(calls).toContainEqual(
+      expect.objectContaining({ op: "update", payload: expect.objectContaining({ offers_image_url: "https://x/actual.jpg" }) }),
+    );
+    expect(storage.removeImageByUrl).not.toHaveBeenCalled();
   });
 });

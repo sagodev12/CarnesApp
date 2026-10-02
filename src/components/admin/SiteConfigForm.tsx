@@ -1,22 +1,15 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Image from "next/image";
 
 import { updateSiteConfig } from "@/app/admin/configuracion/actions";
-import {
-  Field,
-  FormMessage,
-  SubmitButton,
-  fileInputClass,
-  inputClass,
-  pick,
-} from "@/components/ui/form";
+import { Field, FormMessage, SubmitButton, inputClass, pick } from "@/components/ui/form";
 import { initialFormState } from "@/lib/forms";
 import { toCoordinates } from "@/lib/location";
-import { ACCEPTED_IMAGE_TYPES } from "@/lib/validations/common";
 import type { SiteConfig } from "@/types";
 
+import FormSection from "./FormSection";
+import ImageField from "./ImageField";
 import LocationPicker from "./LocationPicker";
 import OpeningHoursField from "./OpeningHoursField";
 
@@ -31,7 +24,7 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
     <form action={formAction} className="space-y-6">
       <FormMessage state={state} />
 
-      <Section title="Marca" description="Cómo se presenta el negocio en la página.">
+      <FormSection title="Marca" description="Cómo se presenta el negocio en la página.">
         <Field label="Nombre del negocio" name="business_name" errors={errors.business_name}>
           <input
             id="business_name"
@@ -45,20 +38,39 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
         </Field>
 
         <Field
-          label="Descripción"
+          label="Eslogan de portada"
           name="description"
           errors={errors.description}
           optional
-          hint="Aparece en la portada y en el pie de página."
+          hint="Frase corta bajo el nombre en la portada. También se ve al compartir el enlace."
         >
           <textarea
             id="description"
             name="description"
-            rows={3}
+            rows={2}
             maxLength={300}
             placeholder="Cortes frescos, seleccionados a diario. Del mostrador a tu mesa."
             defaultValue={pick(v, "description", config.description ?? "")}
             aria-invalid={Boolean(errors.description)}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field
+          label="Texto del pie de página"
+          name="footer_text"
+          errors={errors.footer_text}
+          optional
+          hint="Si lo dejas vacío, se usa el eslogan de portada."
+        >
+          <textarea
+            id="footer_text"
+            name="footer_text"
+            rows={2}
+            maxLength={300}
+            placeholder="Carnicería familiar en el barrio desde 1998."
+            defaultValue={pick(v, "footer_text", config.footer_text ?? "")}
+            aria-invalid={Boolean(errors.footer_text)}
             className={inputClass}
           />
         </Field>
@@ -107,9 +119,9 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
             removeChecked={pick(v, "remove_hero", false)}
           />
         </div>
-      </Section>
+      </FormSection>
 
-      <Section
+      <FormSection
         title="Pedidos por WhatsApp"
         description="Los pedidos de la galería se envían a este número."
       >
@@ -147,9 +159,9 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
             className={inputClass}
           />
         </Field>
-      </Section>
+      </FormSection>
 
-      <Section title="Contacto y redes">
+      <FormSection title="Contacto y redes">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Dirección" name="address" errors={errors.address} optional>
             <input
@@ -193,16 +205,61 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
             />
           </Field>
         </div>
-      </Section>
+      </FormSection>
 
-      <Section
+      <FormSection
         title="Horario de atención"
         description="Con él, la página muestra si el local está abierto ahora. Marca los días que abres."
       >
         <OpeningHoursField hours={config.opening_hours} errors={errors.opening_hours} />
-      </Section>
+      </FormSection>
 
-      <Section
+      <FormSection
+        title="Nosotros"
+        description="Página /nosotros con la historia del negocio. Si la historia queda vacía, la página y su enlace no se muestran."
+      >
+        <Field label="Título" name="about_title" errors={errors.about_title} optional>
+          <input
+            id="about_title"
+            name="about_title"
+            maxLength={80}
+            placeholder="Nuestra historia"
+            defaultValue={pick(v, "about_title", config.about_title ?? "")}
+            aria-invalid={Boolean(errors.about_title)}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field
+          label="Historia"
+          name="about_text"
+          errors={errors.about_text}
+          optional
+          hint="Quiénes son, cómo empezaron, qué los hace distintos. Separa los párrafos con una línea en blanco."
+        >
+          <textarea
+            id="about_text"
+            name="about_text"
+            rows={8}
+            maxLength={3000}
+            defaultValue={pick(v, "about_text", config.about_text ?? "")}
+            aria-invalid={Boolean(errors.about_text)}
+            className={inputClass}
+          />
+        </Field>
+
+        <ImageField
+          label="Imagen"
+          name="about_image"
+          removeName="remove_about_image"
+          currentUrl={config.about_image_url}
+          errors={errors.about_image}
+          removeChecked={pick(v, "remove_about_image", false)}
+          hint="Foto del local o del equipo. JPG, PNG o WEBP. Máximo 4 MB."
+        />
+      </FormSection>
+
+      <FormSection
         title="Ubicación"
         description="Aparece como mapa en la sección “Visítanos” de la página, con un botón para llegar."
       >
@@ -211,72 +268,11 @@ export default function SiteConfigForm({ config }: { config: SiteConfig }) {
           address={config.address}
           error={errors.latitude?.[0]}
         />
-      </Section>
+      </FormSection>
 
       <div className="flex justify-end">
         <SubmitButton pending={pending}>Guardar cambios</SubmitButton>
       </div>
     </form>
-  );
-}
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="space-y-5 rounded-xl border border-line bg-white/60 p-5 sm:p-6">
-      <legend className="sr-only">{title}</legend>
-      <div>
-        <h2 className="font-display text-xl font-semibold">{title}</h2>
-        {description && <p className="mt-0.5 text-sm text-charcoal/60">{description}</p>}
-      </div>
-      {children}
-    </fieldset>
-  );
-}
-
-type ImageFieldProps = {
-  label: string;
-  name: string;
-  removeName: string;
-  currentUrl: string | null;
-  errors?: string[];
-  removeChecked: boolean;
-};
-
-function ImageField({ label, name, removeName, currentUrl, errors, removeChecked }: ImageFieldProps) {
-  return (
-    <Field label={label} name={name} errors={errors} optional hint="JPG, PNG o WEBP. Máximo 4 MB.">
-      {currentUrl && (
-        <div className="mb-3 flex items-center gap-3">
-          <div className="relative h-16 w-24 overflow-hidden rounded-md bg-charcoal/5">
-            <Image src={currentUrl} alt={label} fill sizes="96px" className="object-contain" />
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name={removeName}
-              defaultChecked={removeChecked}
-              className="size-4 accent-brick"
-            />
-            Quitar
-          </label>
-        </div>
-      )}
-      <input
-        id={name}
-        name={name}
-        type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(",")}
-        aria-invalid={Boolean(errors)}
-        className={fileInputClass}
-      />
-    </Field>
   );
 }

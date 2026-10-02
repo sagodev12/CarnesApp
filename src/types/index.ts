@@ -40,7 +40,23 @@ export type SiteConfig = {
   business_name: string;
   logo_url: string | null;
   hero_image_url: string | null;
+  // Eslogan de la portada (también al compartir el enlace).
   description: string | null;
+  // Texto del footer; null = se usa el eslogan.
+  footer_text: string | null;
+  // Página "Nosotros": sin historia (about_text) no se muestra.
+  about_title: string | null;
+  about_text: string | null;
+  about_image_url: string | null;
+  // Franja de ofertas del inicio (ver lib/offers-banner).
+  offers_visible: boolean;
+  offers_eyebrow: string | null;
+  offers_title: string | null;
+  offers_subtitle: string | null;
+  offers_style: string;
+  offers_image_url: string | null;
+  offers_layout: string;
+  offers_limit: number;
   address: string | null;
   phone_whatsapp: string;
   whatsapp_message: string | null;

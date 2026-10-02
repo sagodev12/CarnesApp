@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Percent,
   Settings,
   Tags,
   X,
@@ -19,6 +20,7 @@ const LINKS = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/admin/productos", label: "Productos", icon: Package, exact: false },
   { href: "/admin/categorias", label: "Categorías", icon: Tags, exact: false },
+  { href: "/admin/ofertas", label: "Ofertas", icon: Percent, exact: false },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings, exact: false },
 ];
 

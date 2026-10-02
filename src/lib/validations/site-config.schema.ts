@@ -71,6 +71,9 @@ export const siteConfigSchema = z
       .min(2, "El nombre debe tener al menos 2 caracteres")
       .max(80, "Máximo 80 caracteres"),
     description: optionalText(300),
+    footer_text: optionalText(300),
+    about_title: optionalText(80),
+    about_text: optionalText(3000),
     address: optionalText(150),
     schedule: optionalText(150),
     // Vacío = sin WhatsApp (se ocultan los botones de pedido).
@@ -93,6 +96,8 @@ export const siteConfigSchema = z
     hero: optionalImageSchema,
     remove_logo: z.boolean(),
     remove_hero: z.boolean(),
+    about_image: optionalImageSchema,
+    remove_about_image: z.boolean(),
     latitude: optionalCoordinate(90),
     longitude: optionalCoordinate(180),
     opening_hours: openingHoursSchema,
@@ -109,6 +114,9 @@ export function parseSiteConfigFormData(formData: FormData) {
   return siteConfigSchema.safeParse({
     business_name: text(formData, "business_name"),
     description: text(formData, "description"),
+    footer_text: text(formData, "footer_text"),
+    about_title: text(formData, "about_title"),
+    about_text: text(formData, "about_text"),
     address: text(formData, "address"),
     schedule: text(formData, "schedule"),
     phone_whatsapp: text(formData, "phone_whatsapp"),
@@ -120,6 +128,8 @@ export function parseSiteConfigFormData(formData: FormData) {
     hero: file(formData, "hero"),
     remove_logo: checkbox(formData, "remove_logo"),
     remove_hero: checkbox(formData, "remove_hero"),
+    about_image: file(formData, "about_image"),
+    remove_about_image: checkbox(formData, "remove_about_image"),
     latitude: text(formData, "latitude"),
     longitude: text(formData, "longitude"),
     opening_hours: Array.from({ length: 7 }, (_, day) => ({

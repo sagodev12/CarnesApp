@@ -47,25 +47,30 @@ export async function getDashboardData() {
     getProductCounts(),
     supabase.from("categories").select("id", { count: "exact", head: true }),
     supabase.from("products").select("id", { count: "exact", head: true }).is("image_url", null),
-    supabase
-      .from("products")
-      .select(PRODUCT_COLUMNS)
-      .not("sale_price", "is", null)
-      .order("order")
-      .order("name")
-      .overrideTypes<ProductWithCategory[], { merge: false }>(),
+    getPromotionProducts(),
   ]);
-
-  if (promotions.error) {
-    throw new Error(`No se pudieron cargar las promociones: ${promotions.error.message}`);
-  }
 
   return {
     ...counts,
     categories: categories.count ?? 0,
     withoutImage: withoutImage.count ?? 0,
-    promotions: promotions.data,
+    promotions,
   };
+}
+
+// Todos los productos con precio promo (vigentes, programados o vencidos).
+export async function getPromotionProducts(): Promise<ProductWithCategory[]> {
+  const { data, error } = await createAdminClient()
+    .from("products")
+    .select(PRODUCT_COLUMNS)
+    .not("sale_price", "is", null)
+    .order("order")
+    .order("name")
+    .overrideTypes<ProductWithCategory[], { merge: false }>();
+
+  if (error) throw new Error(`No se pudieron cargar las promociones: ${error.message}`);
+
+  return data;
 }
 
 export async function getProductById(id: string): Promise<ProductWithCategory | null> {

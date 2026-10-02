@@ -10,6 +10,7 @@ import BrandName from "@/components/public/Brandname";
 const LINKS = {
   home: { href: "/", label: "Inicio" },
   products: { href: "/productos", label: "Productos" },
+  about: { href: "/nosotros", label: "Nosotros" },
   offers: { href: "/ofertas", label: "Ofertas" },
   location: { href: "/ubicacion", label: "Ubicación" },
   // El footer (#contacto) está en todas las páginas.
@@ -28,14 +29,27 @@ type HeaderProps = {
   logoUrl: string | null;
   // Con ubicación configurada existe la página /ubicacion.
   hasLocation: boolean;
+  // Con historia escrita existe la página /nosotros.
+  hasAbout: boolean;
 };
 
-export default function Header({ businessName, highlight, logoUrl, hasLocation }: HeaderProps) {
+export default function Header({
+  businessName,
+  highlight,
+  logoUrl,
+  hasLocation,
+  hasAbout,
+}: HeaderProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const navLinks = hasLocation
-    ? [LINKS.home, LINKS.products, LINKS.offers, LINKS.location, LINKS.contact]
-    : [LINKS.home, LINKS.products, LINKS.offers, LINKS.contact];
+  const navLinks = [
+    LINKS.home,
+    LINKS.products,
+    LINKS.offers,
+    ...(hasAbout ? [LINKS.about] : []),
+    ...(hasLocation ? [LINKS.location] : []),
+    LINKS.contact,
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-cream/95 backdrop-blur">

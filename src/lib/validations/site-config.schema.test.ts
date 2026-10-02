@@ -48,6 +48,41 @@ describe("parseSiteConfigFormData", () => {
     expect(result.data).toMatchObject({ description: null, address: null, schedule: null });
   });
 
+  it("lee el texto del footer y la sección Nosotros; vacíos quedan en null", () => {
+    const filled = parseSiteConfigFormData(
+      configForm({
+        footer_text: "  Carnicería familiar desde 1998  ",
+        about_title: "Nuestra historia",
+        about_text: "Empezamos en 1998.\n\nHoy seguimos igual.",
+      }),
+    );
+    const empty = parseSiteConfigFormData(configForm({ footer_text: " ", about_title: "", about_text: "" }));
+
+    expect(filled.data).toMatchObject({
+      footer_text: "Carnicería familiar desde 1998",
+      about_title: "Nuestra historia",
+      about_text: "Empezamos en 1998.\n\nHoy seguimos igual.",
+      about_image: undefined,
+      remove_about_image: false,
+    });
+    expect(empty.data).toMatchObject({ footer_text: null, about_title: null, about_text: null });
+  });
+
+  it("limita la longitud de los textos de Nosotros y del footer", () => {
+    expect(parseSiteConfigFormData(configForm({ footer_text: "x".repeat(301) })).success).toBe(false);
+    expect(parseSiteConfigFormData(configForm({ about_title: "x".repeat(81) })).success).toBe(false);
+    expect(parseSiteConfigFormData(configForm({ about_text: "x".repeat(3001) })).success).toBe(false);
+    expect(parseSiteConfigFormData(configForm({ about_text: "x".repeat(3000) })).success).toBe(true);
+  });
+
+  it("lee la imagen de Nosotros y la opción de quitarla", () => {
+    const image = new File(["x"], "local.jpg", { type: "image/jpeg" });
+    const result = parseSiteConfigFormData(configForm({ about_image: image, remove_about_image: "on" }));
+
+    expect(result.data?.about_image).toBeInstanceOf(File);
+    expect(result.data?.remove_about_image).toBe(true);
+  });
+
   it("exige el nombre del negocio", () => {
     expect(parseSiteConfigFormData(configForm({ business_name: "  " })).success).toBe(false);
   });

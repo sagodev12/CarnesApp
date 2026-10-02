@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { brandHighlight, withSiteConfigDefaults } from "./defaults";
+import { brandHighlight, footerText, hasAboutPage, withSiteConfigDefaults } from "./defaults";
 
 describe("withSiteConfigDefaults", () => {
   it("devuelve valores por defecto si no hay fila", () => {
@@ -13,6 +13,10 @@ describe("withSiteConfigDefaults", () => {
     expect(config.latitude).toBeNull();
     expect(config.longitude).toBeNull();
     expect(config.opening_hours).toBeNull();
+    expect(config.footer_text).toBeNull();
+    expect(config.about_title).toBeNull();
+    expect(config.about_text).toBeNull();
+    expect(config.about_image_url).toBeNull();
   });
 
   it("descarta un horario guardado con forma inválida", () => {
@@ -47,6 +51,27 @@ describe("withSiteConfigDefaults", () => {
 
   it("ignora un color guardado inválido", () => {
     expect(withSiteConfigDefaults({ primary_color: "red" }).primary_color).toBe("#9a3324");
+  });
+});
+
+describe("footerText", () => {
+  it("usa el texto propio del footer si existe", () => {
+    const config = withSiteConfigDefaults({ description: "Eslogan", footer_text: "Desde 1998" });
+
+    expect(footerText(config)).toBe("Desde 1998");
+  });
+
+  it("si no hay texto del footer usa el eslogan de la portada", () => {
+    expect(footerText(withSiteConfigDefaults({ description: "Eslogan" }))).toBe("Eslogan");
+    expect(footerText(withSiteConfigDefaults(null))).toBeNull();
+  });
+});
+
+describe("hasAboutPage", () => {
+  it("solo hay página Nosotros si se escribió la historia", () => {
+    expect(hasAboutPage(withSiteConfigDefaults({ about_text: "Empezamos en 1998." }))).toBe(true);
+    expect(hasAboutPage(withSiteConfigDefaults({ about_title: "Nosotros" }))).toBe(false);
+    expect(hasAboutPage(withSiteConfigDefaults(null))).toBe(false);
   });
 });
 

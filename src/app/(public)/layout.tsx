@@ -5,7 +5,7 @@ import Footer from "@/components/public/Footer";
 import OrderBarContainer from "@/components/public/gallery/OrderBarContainer";
 import Header from "@/components/public/Header";
 import { toCoordinates } from "@/lib/location";
-import { brandHighlight } from "@/lib/site-config/defaults";
+import { brandHighlight, hasAboutPage } from "@/lib/site-config/defaults";
 import { getSiteConfig } from "@/lib/site-config/queries";
 
 // Título, descripción e imagen al compartir el link (WhatsApp, Facebook…).
@@ -59,6 +59,7 @@ export default async function PublicLayout({
         highlight={highlight}
         logoUrl={config.logo_url}
         hasLocation={toCoordinates(config) !== null}
+        hasAbout={hasAboutPage(config)}
       />
       <main className="flex-1">{children}</main>
       <Footer config={config} highlight={highlight} />

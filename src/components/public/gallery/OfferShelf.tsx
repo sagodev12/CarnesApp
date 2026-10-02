@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Flame, Percent } from "lucide-react";
+import { Percent } from "lucide-react";
 
+import type { OffersBanner } from "@/lib/offers-banner";
 import { isOnSale } from "@/lib/promotions";
 import type { ProductWithCategory } from "@/types";
 
+import OfferBanner from "./OfferBanner";
 import ProductList from "./ProductList";
 import { useNow } from "./useNow";
 
@@ -15,11 +17,18 @@ type OfferShelfProps = {
   // Hora del render en el servidor (ms), para hidratar sin desajustes.
   renderedAt: number;
   canOrder: boolean;
-  // carousel: franja destacada del inicio; grid: página /ofertas.
-  variant: "carousel" | "grid";
+  // banner: franja destacada del inicio (con sus ajustes); grid: página /ofertas.
+  variant: "banner" | "grid";
+  banner?: OffersBanner;
 };
 
-export default function OfferShelf({ offers, renderedAt, canOrder, variant }: OfferShelfProps) {
+export default function OfferShelf({
+  offers,
+  renderedAt,
+  canOrder,
+  variant,
+  banner,
+}: OfferShelfProps) {
   const now = useNow(renderedAt);
   const liveOffers = offers.filter((product) => !product.sold_out && isOnSale(product, now));
 
@@ -40,31 +49,7 @@ export default function OfferShelf({ offers, renderedAt, canOrder, variant }: Of
     );
   }
 
-  if (liveOffers.length === 0) return null;
+  if (!banner || !banner.visible || liveOffers.length === 0) return null;
 
-  return (
-    <section
-      aria-labelledby="offers-title"
-      className="-mx-4 bg-charcoal px-4 py-6 text-cream sm:mx-0 sm:rounded-3xl sm:px-6"
-    >
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-mustard">
-            <Flame size={14} />
-            Por tiempo limitado
-          </p>
-          <h2 id="offers-title" className="font-display text-2xl font-black sm:text-3xl">
-            Ofertas
-          </h2>
-        </div>
-        <Link
-          href="/ofertas"
-          className="rounded-full border border-cream/30 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-cream hover:text-charcoal"
-        >
-          Ver todas ({liveOffers.length})
-        </Link>
-      </div>
-      <ProductList products={liveOffers} now={now} canOrder={canOrder} variant="carousel" />
-    </section>
-  );
+  return <OfferBanner settings={banner} offers={liveOffers} now={now} canOrder={canOrder} />;
 }

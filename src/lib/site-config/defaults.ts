@@ -7,6 +7,18 @@ const DEFAULTS: SiteConfig = {
   logo_url: null,
   hero_image_url: null,
   description: null,
+  footer_text: null,
+  about_title: null,
+  about_text: null,
+  about_image_url: null,
+  offers_visible: true,
+  offers_eyebrow: null,
+  offers_title: null,
+  offers_subtitle: null,
+  offers_style: "dark",
+  offers_image_url: null,
+  offers_layout: "carousel",
+  offers_limit: 12,
   address: null,
   phone_whatsapp: "",
   whatsapp_message: "Hola, quiero hacer un pedido",
@@ -40,6 +52,16 @@ export function withSiteConfigDefaults(row: Partial<SiteConfig> | null): SiteCon
   config.opening_hours = parseOpeningHours(config.opening_hours);
 
   return config;
+}
+
+// Texto del pie de página: el propio o, si no hay, el eslogan de la portada.
+export function footerText(config: SiteConfig) {
+  return config.footer_text ?? config.description;
+}
+
+// La página /nosotros (y su enlace) existe solo si se escribió la historia.
+export function hasAboutPage(config: SiteConfig) {
+  return Boolean(config.about_text);
 }
 
 // Palabra del nombre que se muestra en color de acento (la última).
